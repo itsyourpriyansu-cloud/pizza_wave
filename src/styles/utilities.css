@@ -1,0 +1,4 @@
+.eyebrow { font: 700 .74rem/1.2 var(--font-body); letter-spacing: .13em; text-transform: uppercase; }
+.brand-lockup { display: flex; align-items: center; gap: .7rem; font: 700 1.05rem/1 var(--font-display); letter-spacing: .04em; }
+.logo-wave { display: grid; place-items: center; width: 2.45rem; height: 2.45rem; border-radius: 13px; background: var(--wave-orange); color: var(--wave-burgundy); font: 700 1.45rem/1 var(--font-display); transform: rotate(-4deg); }
+.text-link { color: inherit; font-weight: 600; text-decoration: underline; text-underline-offset: 4px; }

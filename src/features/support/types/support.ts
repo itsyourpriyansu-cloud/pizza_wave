@@ -1,0 +1,1 @@
+export type SupportCaseStatus = 'OPEN' | 'AUTO_RESOLVED' | 'FOUNDER_REVIEW' | 'WAITING_CUSTOMER' | 'RESOLVED' | 'CLOSED'
