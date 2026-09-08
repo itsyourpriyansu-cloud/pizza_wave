@@ -1,3 +1,2 @@
-export type PaymentStatus = 'NOT_STARTED' | 'PENDING' | 'CONFIRMED' | 'FAILED' | 'RECONCILING'
-export type AcceptanceStatus = 'NOT_APPLICABLE' | 'AWAITING_ACCEPTANCE' | 'REVIEW_REQUIRED' | 'ACCEPTED' | 'REJECTED'
-export type FulfillmentStatus = 'NOT_STARTED' | 'SCHEDULED' | 'PREP_DUE' | 'PREPARING' | 'READY' | 'DISPATCHED' | 'PICKED_UP' | 'DELIVERED' | 'STORE_COMPLETED' | 'CANCELLED'
+export type { PaymentStatus } from '../../../domain/payment/payment.types'
+export type { AcceptanceStatus, FulfillmentStatus } from '../../../domain/orders/order.types'

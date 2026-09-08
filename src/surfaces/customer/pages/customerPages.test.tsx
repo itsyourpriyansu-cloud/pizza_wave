@@ -2,7 +2,19 @@ import { cleanup, render, screen } from '@testing-library/react'
 import type { ReactNode } from 'react'
 import { MemoryRouter } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { categories, demoCapabilities, demoCustomer, products, smartCollections } from '../../../mocks/fixtures/seed'
+import { categorySeed as categories, productSeed, smartCollectionSeed as smartCollections } from '../../../prototype/seed/catalog.seed'
+import { primaryCustomerSeed as demoCustomer } from '../../../prototype/seed/customers.seed'
+import { storeConfigSeed } from '../../../prototype/seed/store.seed'
+import { deriveCapabilities } from '../../../domain/store/capability.engine'
+import type { LegacyProductView } from '../../../domain/catalog/catalog.types'
+
+const demoCapabilities = deriveCapabilities(storeConfigSeed)
+const products: LegacyProductView[] = productSeed.map((p) => ({
+  id: p.id, name: p.name, description: p.shortDescription, category: p.categoryId,
+  price: p.basePrice, veg: p.veg, available: p.available, prepMinutes: p.prepMinutes,
+  complexity: p.complexity, station: p.station, image: `/assets/products/${p.imageKey}`,
+  badges: p.badges, modifierGroups: p.modifierGroups,
+}))
 import HomePage from './HomePage'
 import MenuPage from './MenuPage'
 

@@ -1,3 +1,3 @@
 import { useQuery } from '@tanstack/react-query'
-import { getCapabilities } from '../api/capabilities.api'
-export const useCapabilities = () => useQuery({ queryKey: ['capabilities'], queryFn: getCapabilities })
+import { api } from '../../../services/api'
+export const useCapabilities = () => useQuery({ queryKey: ['capabilities'], queryFn: api.config.getCapabilities })

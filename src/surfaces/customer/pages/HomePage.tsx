@@ -14,7 +14,7 @@ export default function HomePage() {
   if (menu.isError || capabilities.isError) return <ErrorState retry={() => { void menu.refetch(); void capabilities.refetch() }} />
   const productAction = (productId: string) => ({ cartItem: cart.data?.items.find((item) => item.productId === productId), onAdd: () => add.mutate(productId), onQuantity: (quantity: number) => { const item = cart.data?.items.find((row) => row.productId === productId); if (item) update.mutate({ id: item.id, quantity }) } })
   return <div className="home-page">
-    <section className="fulfillment-bar"><SegmentedControl label="Choose fulfillment" value={mode === 'STORE' ? 'DELIVERY' : mode} onChange={setMode} options={[{ value: 'DELIVERY', label: 'Delivery', disabled: !capabilities.data?.deliveryEnabled }, { value: 'PICKUP', label: 'Pickup', disabled: !capabilities.data?.pickupEnabled }]} /></section>
+    <section className="fulfillment-bar"><SegmentedControl label="Choose fulfillment" value={mode === 'STORE' ? 'DELIVERY' : mode} onChange={setMode} options={[{ value: 'DELIVERY', label: 'Delivery', disabled: !capabilities.data?.delivery.enabled }, { value: 'PICKUP', label: 'Pickup', disabled: !capabilities.data?.pickup.enabled }]} /></section>
     <Link className="search-entry" to="/app/search"><Search /><span>Search pizza, paneer, shake…</span><kbd>⌘ K</kbd></Link>
     <section className="hero-card">
       <div className="hero-copy"><span className="eyebrow">PURI’S OWN PIZZA WAVE</span><h1>Big cheese.<br />Easy choice.</h1><p>Fresh favourites, ready for delivery or pickup from Grand Road.</p><Link className="button button-primary" to="/app/menu">ORDER NOW <ArrowRight size={18} /></Link></div>

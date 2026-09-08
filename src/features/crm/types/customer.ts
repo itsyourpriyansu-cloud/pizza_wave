@@ -1,2 +1,1 @@
-export type CustomerLifecycle = 'NEW' | 'FIRST_ORDER' | 'SECOND_ORDER' | 'REPEAT' | 'LOYAL' | 'VIP'
-export type CustomerActivity = 'ACTIVE' | 'AT_RISK' | 'DORMANT'
+export type { CustomerLifecycle, CustomerActivity } from '../../../domain/crm/crm.types'

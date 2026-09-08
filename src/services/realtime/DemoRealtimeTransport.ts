@@ -1,4 +1,14 @@
-import { eventBus } from '../events/eventBus'
-import type { AppEvent } from '../events/eventTypes'
+import { eventBus } from '../../prototype/events/event-bus'
+import type { AppEvent } from '../../prototype/events/event-types'
 import type { RealtimeTransport } from './RealtimeTransport'
-export class DemoRealtimeTransport implements RealtimeTransport { connect() {}; disconnect() {}; subscribe(listener: (event: AppEvent) => void) { return eventBus.subscribe(listener) } }
+
+/** Stands in for a future WebSocketTransport. Subscribes straight to the in-memory event bus. */
+export class DemoRealtimeTransport implements RealtimeTransport {
+  connect(): void {}
+  disconnect(): void {}
+  subscribe(listener: (event: AppEvent) => void): () => void {
+    return eventBus.subscribe(listener)
+  }
+}
+
+export const demoRealtimeTransport = new DemoRealtimeTransport()

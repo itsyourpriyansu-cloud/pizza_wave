@@ -1,8 +1,8 @@
 import { useEffect } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { z } from 'zod'
-import { addCartItem } from '../../features/cart/api/cart.api'
-import { getMenu } from '../../features/catalog/api/catalog.api'
+import { addCartItem } from '../api/cart.api'
+import { getMenu } from '../api/catalog.api'
 
 interface ModelContextTool {
   name: string
@@ -35,12 +35,12 @@ export function usePizzaWaveTools() {
       annotations: { readOnlyHint: false, untrustedContentHint: false },
       async execute(input) {
         const { productId } = inputSchema.parse(input)
-        const menu = await getMenu(); const product = menu.products.find((item) => item.id === productId)
+        const menu = await getMenu(); const product = menu.products.find((item: { id: string }) => item.id === productId)
         if (!product) throw new Error('Unknown Pizza Wave product ID')
         if (!product.available) throw new Error('This product is currently unavailable')
         const cart = await addCartItem(productId)
         await Promise.all([queryClient.invalidateQueries({ queryKey: ['cart'] }), queryClient.invalidateQueries({ queryKey: ['cart-quote'] })])
-        return { productId, productName: product.name, cartItemCount: cart.items.reduce((total, item) => total + item.quantity, 0) }
+        return { productId, productName: product.name, cartItemCount: cart.items.reduce((total: number, item: { quantity: number }) => total + item.quantity, 0) }
       },
     }
     void Promise.resolve(context.registerTool(tool, { signal: lifecycle.signal })).catch(() => undefined)

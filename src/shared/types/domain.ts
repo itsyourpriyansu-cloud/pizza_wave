@@ -1,54 +1,19 @@
-export type FulfillmentMode = 'DELIVERY' | 'PICKUP' | 'STORE'
-export type Station = 'PIZZA' | 'FRY' | 'BEVERAGE' | 'ASSEMBLY'
-export type ProductBadge = 'Bestseller' | 'New' | 'Veg' | 'Spicy' | 'Wave Exclusive' | 'Customizable'
-
-export interface ModifierOption { id: string; name: string; priceDelta: number }
-export interface ModifierGroup { id: string; name: string; required: boolean; multiple?: boolean; options: ModifierOption[] }
-export interface Category { id: string; name: string; color: string; sortOrder: number }
-export interface Product {
-  id: string
-  name: string
-  description: string
-  category: string
-  price: number
-  veg: boolean
-  available: boolean
-  prepMinutes: number
-  complexity: number
-  station: Station
-  image: string
-  badges: ProductBadge[]
-  modifierGroups?: ModifierGroup[]
-}
-
-export interface StoreCapabilities {
-  store: { id: string; name: string; city: string; open: boolean; acceptanceMode: 'HYBRID' }
-  deliveryEnabled: boolean
-  pickupEnabled: boolean
-  storeOrderEnabled: boolean
-}
-
-export interface DemoCustomer {
-  id: string
-  firstName: string
-  phone: string
-  tier: 'GOLD'
-  pointsAvailable: number
-  pointsPending: number
-  rolling120Orders: number
-  rolling120Spend: number
-  lifetimeOrders: number
-  lifetimeValue: number
-  averageOrderValue: number
-  preferredCategory: string
-  tags: string[]
-}
+/**
+ * Stage 1 UI compatibility barrel. These are the flat "legacy view" shapes the current
+ * customer surfaces render — real business logic and validation live in src/domain/*.
+ * New frontend work should import directly from src/domain/* and src/services/api/*.
+ */
+export type { FulfillmentMode } from '../../domain/customer/customer.types'
+export type { Station, ProductBadge, ModifierOption, ModifierGroup, Category, LegacyProductView as Product } from '../../domain/catalog/catalog.types'
+export type { LegacyCart as Cart } from '../../domain/cart/cart.types'
+export type { CartQuote } from '../../domain/pricing/pricing.types'
+export type { DemoCustomerView } from '../../domain/customer/customer.types'
+export type { LoyaltySummary } from '../../domain/loyalty/loyalty.types'
+export type { Capabilities } from '../../domain/store/store.types'
 
 export interface CartItem { id: string; cartId: string; productId: string; quantity: number }
-export interface Cart { id: string; customerId?: string; status: 'ACTIVE'; updatedAt: string; items: Array<CartItem & { product: Product }> }
-export interface CartQuote { itemCount: number; subtotal: number; deliveryFee: number; total: number; pointsEarned: number }
-export interface LoyaltySummary { customer: DemoCustomer; nextTier: 'PLATINUM'; ordersNeeded: number; spendNeeded: number }
 
+/** Browser-session shapes only (sessionStorage), deliberately separate from the server-side domain/auth session records. */
 export interface CustomerSession { realm: 'customer'; customerId: string; expiresAt: string }
 export interface OwnerSession { realm: 'owner'; email: string; expiresAt: string }
 export interface KdsSession { realm: 'kds'; device: string; expiresAt: string }
