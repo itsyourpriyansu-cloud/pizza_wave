@@ -20,6 +20,8 @@ export const storeConfigSchema = z.object({
   pickupBufferMinutes: z.number().int().nonnegative(),
   deliveryBufferMinutes: z.number().int().nonnegative(),
   kdsOnline: z.boolean(),
+  kitchenCapacityCount: z.number().int().positive(),
+  deliveryFeeFlat: z.number().nonnegative(),
   capacityThresholds: z.object({
     lightMaxPercent: z.number(), moderateMaxPercent: z.number(), heavyMaxPercent: z.number(),
   }),

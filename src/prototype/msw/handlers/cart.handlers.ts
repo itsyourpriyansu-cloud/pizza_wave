@@ -4,7 +4,7 @@ import { DEMO_CART_ID } from '../../demo/reset-demo'
 import { quoteCart } from '../../../domain/pricing/pricing.engine'
 import { toLegacyProductView } from '../../../domain/catalog/catalog.view'
 import type { LegacyCart } from '../../../domain/cart/cart.types'
-import { API, boot, json } from './_shared'
+import { API, boot, getStoreConfig, json } from './_shared'
 import { eventBus } from '../../events/event-bus'
 
 async function getCart(): Promise<LegacyCart> {
@@ -16,13 +16,13 @@ async function getCart(): Promise<LegacyCart> {
 }
 
 async function getQuote() {
-  const cart = await getCart()
+  const [cart, storeConfig] = await Promise.all([getCart(), getStoreConfig()])
   const customer = await db.customers.get(cart.customerId ?? 'CUST001')
   return quoteCart({
     items: cart.items.map((item) => ({ quantity: item.quantity, unitPrice: item.product.price })),
     fulfillmentType: 'DELIVERY', customerTier: customer?.tier ?? 'MEMBER',
     pointsAvailable: customer?.pointsAvailable ?? 0, pointsRequested: 0,
-    deliveryFeeTable: { DELIVERY: 0, PICKUP: 0, STORE: 0 },
+    deliveryFeeTable: { DELIVERY: storeConfig.deliveryFeeFlat, PICKUP: 0, STORE: 0 },
   })
 }
 

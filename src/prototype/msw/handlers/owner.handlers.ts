@@ -4,7 +4,7 @@ import { acceptOrder, applySchedule, rejectOrder } from '../../../domain/orders/
 import { scheduleOrder } from '../../../domain/fulfillment/scheduler'
 import { createRefund } from '../../../domain/refunds/refund.machine'
 import { resolveAttentionItem, getActiveAttentionQueue } from '../../../domain/attention/attention.engine'
-import { API, boot, error, getStoreConfig, json, logOrderEvent, now } from './_shared'
+import { API, boot, error, getActiveKitchenOrderCount, getStoreConfig, json, logOrderEvent, now } from './_shared'
 
 export const ownerHandlers = [
   http.get(`${API}/owner/orders`, async ({ request }) => {
@@ -20,9 +20,10 @@ export const ownerHandlers = [
     if (!order) return error('Order not found', 404)
     const products = await db.products.bulkGet(order.items.map((item) => item.productId))
     const storeConfig = await getStoreConfig()
+    const activeOrderCount = await getActiveKitchenOrderCount()
     const schedule = scheduleOrder({
       items: products.filter(Boolean).map((product) => ({ productId: product!.id, prepMinutes: product!.prepMinutes, complexity: product!.complexity, station: product!.station, quantity: order!.items.find((item) => item.productId === product!.id)?.quantity ?? 1 })),
-      fulfillmentType: order.fulfillmentType, activeOrderCount: 0, kitchenCapacityCount: 8,
+      fulfillmentType: order.fulfillmentType, activeOrderCount, kitchenCapacityCount: storeConfig.kitchenCapacityCount,
       packingMinutes: storeConfig.packingMinutes, pickupBufferMinutes: storeConfig.pickupBufferMinutes, deliveryBufferMinutes: storeConfig.deliveryBufferMinutes, now: now(),
     })
     order = acceptOrder(order, now())

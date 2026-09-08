@@ -7,6 +7,8 @@ export const storeConfigSeed: StoreConfig = {
   maxDeliveryWaitMinutes: 45, maxPickupWaitMinutes: 25,
   packingMinutes: 3, pickupBufferMinutes: 5, deliveryBufferMinutes: 15,
   kdsOnline: true,
+  kitchenCapacityCount: 8,
+  deliveryFeeFlat: 0,
   capacityThresholds: { lightMaxPercent: 50, moderateMaxPercent: 75, heavyMaxPercent: 90 },
   delayThresholds: { customerNoticeMinutes: 8, founderAttentionMinutes: 15 },
 }

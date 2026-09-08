@@ -5,8 +5,11 @@ import { demoClock } from '../../../domain/shared/clock'
 import { eventBus } from '../../events/event-bus'
 import { createId } from '../../../domain/shared/ids'
 import type { Capabilities, StoreConfig } from '../../../domain/store/store.types'
-import type { OrderEventType } from '../../../domain/orders/order.types'
+import type { Order, OrderEventType } from '../../../domain/orders/order.types'
 import { ensureDemoDatabase } from '../../demo/reset-demo'
+
+/** Orders actively occupying kitchen capacity for scheduler load-percent purposes. */
+export const ACTIVE_KITCHEN_STATUSES: Order['fulfillmentStatus'][] = ['SCHEDULED', 'PREP_DUE', 'PREPARING']
 
 export const API = '*/api/v1'
 export const json = <T,>(value: T, status = 200) => HttpResponse.json(value as never, { status })
@@ -50,6 +53,12 @@ export async function logOrderEvent(orderId: string, type: OrderEventType, actor
 
 export function now() {
   return demoClock.now()
+}
+
+/** Same load count the auto-accept path uses — owner manual-accept must see the same kitchen reality. */
+export async function getActiveKitchenOrderCount(): Promise<number> {
+  const orders = await db.orders.toArray()
+  return orders.filter((order) => ACTIVE_KITCHEN_STATUSES.includes(order.fulfillmentStatus)).length
 }
 
 /** One-shot flag scenarios set to steer the very next payment (see scenarios/payment-failure.ts etc). */

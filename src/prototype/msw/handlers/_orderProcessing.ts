@@ -8,11 +8,7 @@ import { createRefund } from '../../../domain/refunds/refund.machine'
 import { createAttentionItem } from '../../../domain/attention/attention.engine'
 import type { Order } from '../../../domain/orders/order.types'
 import type { PaymentAttempt } from '../../../domain/payment/payment.types'
-import { getCapabilities, getStoreConfig, logOrderEvent, nextOrderSequence, now } from './_shared'
-
-/** Orders actively occupying kitchen capacity for load-percent purposes. */
-const ACTIVE_KITCHEN_STATUSES: Order['fulfillmentStatus'][] = ['SCHEDULED', 'PREP_DUE', 'PREPARING']
-const KITCHEN_CAPACITY_COUNT = 8
+import { getActiveKitchenOrderCount, getCapabilities, getStoreConfig, logOrderEvent, nextOrderSequence, now } from './_shared'
 
 /**
  * Runs once per confirmed payment: creates the order (idempotently), evaluates acceptance,
@@ -48,7 +44,7 @@ export async function confirmPaymentAndCreateOrder(payment: PaymentAttempt): Pro
 
   const capabilities = await getCapabilities()
   const storeConfig = await getStoreConfig()
-  const activeOrderCount = (await db.orders.toArray()).filter((candidate) => ACTIVE_KITCHEN_STATUSES.includes(candidate.fulfillmentStatus)).length
+  const activeOrderCount = await getActiveKitchenOrderCount()
 
   const result = evaluateOrderAcceptance({
     paymentConfirmed: order.paymentStatus === 'CONFIRMED',
@@ -56,7 +52,7 @@ export async function confirmPaymentAndCreateOrder(payment: PaymentAttempt): Pro
     quote: order.financialSnapshot, acceptanceMode: storeConfig.acceptanceMode,
     schedule: {
       items: products.filter(Boolean).map((product) => ({ productId: product!.id, prepMinutes: product!.prepMinutes, complexity: product!.complexity, station: product!.station, quantity: order.items.find((item) => item.productId === product!.id)?.quantity ?? 1 })),
-      pickupSlot: intent.pickupSlot, activeOrderCount, kitchenCapacityCount: KITCHEN_CAPACITY_COUNT,
+      pickupSlot: intent.pickupSlot, activeOrderCount, kitchenCapacityCount: storeConfig.kitchenCapacityCount,
       packingMinutes: storeConfig.packingMinutes, pickupBufferMinutes: storeConfig.pickupBufferMinutes, deliveryBufferMinutes: storeConfig.deliveryBufferMinutes, now: now(),
     },
   })
