@@ -1,33 +1,91 @@
-import { ArrowRight, Bike, Gift, Pizza, Search, Sparkles, Store, UsersRound } from 'lucide-react'
+import { ArrowRight, CakeSlice, CookingPot, CupSoda, Gift, Pizza, Popcorn, Search, Sandwich, Sparkles, Store, Utensils, UsersRound, Waves, type LucideIcon } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { useCapabilities } from '../../../features/availability/hooks/useCapabilities'
 import { useMenu, useRecommendations } from '../../../features/catalog/hooks/useCatalog'
 import { useCart, useCartActions } from '../../../features/cart/hooks/useCart'
 import { useLoyalty } from '../../../features/loyalty/hooks/useLoyalty'
+import { useOrders } from '../../../features/orders/hooks/useOrders'
 import { ProductCard } from '../../../features/product/components/ProductCard'
-import { EmptyState, ErrorState, PointsBadge, SegmentedControl, Skeleton } from '../../../shared/components'
+import { filterMenuProducts } from '../../../domain/catalog/filterMenuProducts'
+import type { LegacyProductView } from '../../../domain/catalog/catalog.types'
+import type { CartItem } from '../../../shared/types/domain'
+import { EmptyState, ErrorState, PointsBadge, Skeleton } from '../../../shared/components'
 import { useAppStore } from '../../../stores/app.store'
+import { useDemo } from '../../../app/providers/DemoProvider'
+import { CustomerAsset } from '../components/CustomerAsset'
+
+const categoryIcons: Record<string, LucideIcon> = { pizza: Pizza, kulhad: CookingPot, burger: Sandwich, wrap: Utensils, sides: Popcorn, shakes: CupSoda, desserts: CakeSlice }
+type ProductAction = { cartItem?: CartItem; onAdd: () => void; onQuantity: (quantity: number) => void }
+
+function SectionHeading({ eyebrow, title, to, link = 'See all' }: { eyebrow: string; title: string; to?: string; link?: string }) {
+  return <div className="section-heading"><div><span>{eyebrow}</span><h2>{title}</h2></div>{to && <Link to={to}>{link} <ArrowRight /></Link>}</div>
+}
+
+function ProductRail({ eyebrow, title, products, actionFor, to }: { eyebrow: string; title: string; products: LegacyProductView[]; actionFor: (id: string) => ProductAction; to?: string }) {
+  return <section className="home-section"><SectionHeading eyebrow={eyebrow} title={title} to={to} /><div className="product-scroll">{products.length ? products.map((product) => <ProductCard key={product.id} product={product} {...actionFor(product.id)} />) : <EmptyState title="Fresh batch incoming" message="These picks will be back in a moment." />}</div></section>
+}
 
 export default function HomePage() {
-  const mode = useAppStore((state) => state.fulfillmentMode); const setMode = useAppStore((state) => state.setFulfillmentMode)
-  const capabilities = useCapabilities(); const menu = useMenu(); const recommendations = useRecommendations(); const cart = useCart(); const loyalty = useLoyalty(); const { add, update } = useCartActions()
+  const storedMode = useAppStore((state) => state.fulfillmentMode)
+  const mode = storedMode === 'STORE' ? 'DELIVERY' : storedMode
+  const { customerLoggedIn } = useDemo()
+  const capabilities = useCapabilities()
+  const menu = useMenu()
+  const recommendations = useRecommendations('personalized')
+  const popularRecommendations = useRecommendations('popular')
+  const cart = useCart()
+  const loyalty = useLoyalty()
+  const orders = useOrders(customerLoggedIn ? loyalty.data?.customer.id : undefined)
+  const { add, update } = useCartActions()
+
   if (menu.isError || capabilities.isError) return <ErrorState retry={() => { void menu.refetch(); void capabilities.refetch() }} />
-  const productAction = (productId: string) => ({ cartItem: cart.data?.items.find((item) => item.productId === productId), onAdd: () => add.mutate(productId), onQuantity: (quantity: number) => { const item = cart.data?.items.find((row) => row.productId === productId); if (item) update.mutate({ id: item.id, quantity }) } })
-  return <div className="home-page">
-    <section className="fulfillment-bar"><SegmentedControl label="Choose fulfillment" value={mode === 'STORE' ? 'DELIVERY' : mode} onChange={setMode} options={[{ value: 'DELIVERY', label: 'Delivery', disabled: !capabilities.data?.delivery.enabled }, { value: 'PICKUP', label: 'Pickup', disabled: !capabilities.data?.pickup.enabled }]} /></section>
+
+  const products = menu.data?.products ?? []
+  const productAction = (productId: string): ProductAction => {
+    const cartItem = cart.data?.items.find((item) => item.productId === productId)
+    return { cartItem, onAdd: () => add.mutate(productId), onQuantity: (quantity) => { if (cartItem) update.mutate({ id: cartItem.id, quantity }) } }
+  }
+  const bestSellers = filterMenuProducts(products, { category: 'all', collection: 'best-sellers', query: '' })
+  const under199 = filterMenuProducts(products, { category: 'pizza', collection: 'under-199', query: '' })
+  const kulhad = products.find((product) => product.category === 'kulhad')
+  const lastOrder = orders.data?.find((order) => ['DELIVERED', 'PICKED_UP', 'STORE_COMPLETED'].includes(order.fulfillmentStatus))
+  const usual = lastOrder ? lastOrder.items.map((item) => products.find((product) => product.id === item.productId)).filter((product): product is LegacyProductView => Boolean(product)) : (recommendations.data ?? []).slice(0, 2)
+  const customerName = loyalty.data?.customer.firstName ?? 'Priyanshu'
+  const hero = customerLoggedIn
+    ? { eyebrow: `${mode === 'DELIVERY' ? 'DELIVERED' : 'READY'} YOUR WAY`, title: 'Your usual\nis calling.', cta: 'ADD YOUR USUAL' }
+    : { eyebrow: mode === 'DELIVERY' ? 'HOT TO YOUR DOOR' : 'FRESH AT GRAND ROAD', title: mode === 'DELIVERY' ? 'Puri’s pizza.\nDelivered hot.' : 'Skip the wait.\nPick up fresh.', cta: 'ORDER NOW' }
+
+  return <div className="home-page stage-two-home">
+    {customerLoggedIn && <section className="home-greeting"><div><span>GOOD EVENING</span><h1>Hey, {customerName}.</h1></div>{loyalty.data && <Link className="greeting-tier" to="/app/rewards"><strong>Gold Wave · {loyalty.data.customer.pointsAvailable} points</strong><span>{loyalty.data.customer.pointsPending} pending</span></Link>}</section>}
     <Link className="search-entry" to="/app/search"><Search /><span>Search pizza, paneer, shake…</span><kbd>⌘ K</kbd></Link>
-    <section className="hero-card">
-      <div className="hero-copy"><span className="eyebrow">PURI’S OWN PIZZA WAVE</span><h1>Big cheese.<br />Easy choice.</h1><p>Fresh favourites, ready for delivery or pickup from Grand Road.</p><Link className="button button-primary" to="/app/menu">ORDER NOW <ArrowRight size={18} /></Link></div>
-      <div className="hero-art" aria-label="Pizza imagery coming soon"><span>HOT</span><div className="hero-disc"><Pizza /></div><i className="hero-wave" /></div>
+
+    <section className="smart-hero">
+      <CustomerAsset src="/assets/hero/hero-main-pizza.png" alt="Fresh vegetable pizza with a cheese pull" className="smart-hero-image" eager />
+      <div className="smart-hero-shade" />
+      <div className="smart-hero-copy"><span className="eyebrow">{hero.eyebrow}</span><h2>{hero.title}</h2>{customerLoggedIn ? <button className="button hero-cta" onClick={() => usual.forEach((product) => add.mutate(product.id))}>{hero.cta}<ArrowRight size={18} /></button> : <Link className="button hero-cta" to="/app/menu">{hero.cta}<ArrowRight size={18} /></Link>}</div>
+      <span className="hero-mode"><Store size={15} />{mode === 'DELIVERY' ? 'Delivery from Grand Road' : 'Pickup at Grand Road'}</span>
     </section>
-    <section><div className="section-heading"><div><span>EXPLORE</span><h2>What are you craving?</h2></div><Link to="/app/menu">Full menu <ArrowRight /></Link></div>
-      <div className="category-row">{menu.isPending ? Array.from({ length: 5 }, (_, i) => <Skeleton key={i} className="category-skeleton" />) : menu.data?.categories.length ? menu.data.categories.map((category) => <Link className={`category-tile color-${category.color}`} to={`/app/menu?category=${category.id}`} key={category.id}><span>{category.name.slice(0, 2).toUpperCase()}</span><strong>{category.name}</strong></Link>) : <EmptyState title="Menu is warming up" message="Fresh picks will appear here shortly." />}</div>
-    </section>
-    <section className="order-again-card"><div className="usual-mark"><Sparkles /></div><div><span>YOUR USUAL</span><h2>Saturday Night</h2><p>Classic Veg Pizza · Cold Coffee</p></div><Link to="/app/saved-orders" aria-label="Open saved order"><ArrowRight /></Link></section>
-    {loyalty.data && <section className="points-card"><div><span className="eyebrow">GOLD WAVE</span><h2>{loyalty.data.customer.pointsAvailable} Wave Points</h2><p>{loyalty.data.ordersNeeded} orders + ₹{loyalty.data.spendNeeded} to Platinum</p></div><div className="points-orbit"><Gift /><PointsBadge points={loyalty.data.customer.pointsPending} /></div><div className="progress-pair"><span style={{ width: '80%' }} /><i style={{ width: '80%' }} /></div></section>}
-    <section><div className="section-heading"><div><span>POPULAR IN PURI</span><h2>Best sellers</h2></div><Link to="/app/menu?collection=best-sellers">See all <ArrowRight /></Link></div><div className="product-scroll">{recommendations.isPending ? Array.from({ length: 3 }, (_, i) => <Skeleton key={i} className="product-skeleton" />) : recommendations.data?.length ? recommendations.data.map((product) => <ProductCard key={product.id} product={product} {...productAction(product.id)} />) : <EmptyState title="Fresh batch incoming" message="Best sellers will be back in a moment." />}</div></section>
-    <section className="builder-card"><div><span className="eyebrow">MAKE IT YOURS</span><h2>Build your pizza,<br />your way.</h2><p>Pick the base, cheese, toppings and spice. We’ll keep the price live.</p><Link className="button button-secondary" to="/app/build/PIZZA-VEG-001">START BUILDING <ArrowRight size={18} /></Link></div><div className="builder-rings"><Pizza /></div></section>
-    <section className="campaign-grid"><article className="campaign family"><UsersRound /><span>FEED THE CREW</span><h2>Good food,<br />better together.</h2><Link to="/app/menu?collection=family">Find family picks →</Link></article><article className="campaign refer"><Gift /><span>SHARE THE WAVE</span><h2>Give ₹50.<br />Get 60 points.</h2><Link to="/app/refer">Invite a friend →</Link></article></section>
-    <section className="service-note"><div><Bike /><span><strong>Delivery</strong> around Puri</span></div><div><Store /><span><strong>Pickup</strong> at Grand Road</span></div></section>
+
+    {!customerLoggedIn && <section className="home-section"><SectionHeading eyebrow="QUICK PICKS" title="What are you craving?" to="/app/menu" link="Full menu" /><div className="category-row">{menu.isPending ? Array.from({ length: 7 }, (_, i) => <Skeleton key={i} className="category-skeleton" />) : menu.data?.categories.length ? menu.data.categories.map((category) => { const Icon = categoryIcons[category.id] ?? Pizza; return <Link className={`category-tile color-${category.color}`} to={`/app/menu?category=${category.id}`} key={category.id}><span><Icon aria-hidden="true" /></span><strong>{category.name}</strong></Link> }) : <EmptyState title="Menu is warming up" message="Fresh picks will appear here shortly." />}</div></section>}
+
+    {customerLoggedIn ? <>
+      <section className="home-section usual-section"><SectionHeading eyebrow="YOUR USUAL" title="Ready when you are" /><div className="usual-products">{usual.map((product) => <ProductCard key={product.id} product={product} {...productAction(product.id)} />)}</div></section>
+      {lastOrder && <section className="reorder-preview"><div className="usual-mark"><Sparkles /></div><div><span>REORDER PREVIEW · {lastOrder.publicOrderNumber}</span><h2>{lastOrder.items.map((item) => item.name).join(' + ')}</h2><p>{lastOrder.items.length} items · ₹{lastOrder.financialSnapshot.total}</p></div><Link to="/app/orders" aria-label="View previous order"><ArrowRight /></Link></section>}
+      {loyalty.data && <section className="points-card platinum-card"><div><span className="eyebrow">GOLD WAVE</span><h2>{loyalty.data.customer.pointsAvailable} Wave Points</h2><p>{loyalty.data.ordersNeeded} orders + ₹{loyalty.data.spendNeeded} to Platinum</p></div><div className="points-orbit"><Waves /><PointsBadge points={loyalty.data.customer.pointsPending} /></div><div className="tier-progress-label"><span>{loyalty.data.customer.rolling120Orders} orders</span><span>{loyalty.data.customer.rolling120Orders + loyalty.data.ordersNeeded} for Platinum</span></div><div className="progress-pair"><span style={{ width: `${Math.min(100, (loyalty.data.customer.rolling120Orders / (loyalty.data.customer.rolling120Orders + loyalty.data.ordersNeeded)) * 100)}%` }} /></div></section>}
+      <ProductRail eyebrow={`PICKED FOR ${customerName.toUpperCase()}`} title="You might love these" products={recommendations.data ?? []} actionFor={productAction} to="/app/menu" />
+      <section className="relevant-offer"><div><span>YOUR GOLD-WAVE PICK</span><h2>A little extra for your next pizza night.</h2><Link to="/app/offers">SEE YOUR OFFER <ArrowRight /></Link></div><CustomerAsset src="/assets/macro/macro-cheese-pull.png" alt="Pizza slice with melted cheese" /></section>
+      <ProductRail eyebrow="THE CROWD AGREES" title="Best sellers" products={bestSellers} actionFor={productAction} to="/app/menu?collection=best-sellers" />
+      <section className="saved-order-card"><div><span>SAVED ORDER</span><h2>Saturday Night</h2><p>{usual.map((product) => product.name).join(' · ')}</p></div><Link className="button button-secondary" to="/app/saved-orders">OPEN SAVED ORDER</Link></section>
+    </> : <>
+      <ProductRail eyebrow="POPULAR IN PURI" title="Local favourites" products={popularRecommendations.data ?? []} actionFor={productAction} to="/app/menu?collection=best-sellers" />
+      <ProductRail eyebrow="VALUE PICKS" title="Pizza under ₹199" products={under199} actionFor={productAction} to="/app/menu?category=pizza&collection=under-199" />
+      {kulhad && <section className="kulhad-feature"><CustomerAsset src="/assets/hero/hero-kulhad-pizza.png" alt="Signature kulhad pizza with molten cheese" /><div><span>ONLY AT THE WAVE</span><h2>{kulhad.name}</h2><p>{kulhad.description}</p><div className="feature-price"><strong>₹{kulhad.price}</strong>{productAction(kulhad.id).cartItem ? <span>In your cart</span> : <button onClick={productAction(kulhad.id).onAdd}>ADD <ArrowRight /></button>}</div></div></section>}
+      <section className="builder-card stage-two-builder"><div><span className="eyebrow">MAKE IT YOURS</span><h2>Build your pizza,<br />your way.</h2><p>Base, cheese, toppings, spice—your call.</p><Link className="button button-secondary" to="/app/build/PIZZA-VEG-001">START BUILDING <ArrowRight size={18} /></Link></div><CustomerAsset src="/assets/products/pizza/classic-veg-pizza.png" alt="Classic vegetable pizza" /></section>
+      <ProductRail eyebrow="MOST-ORDERED" title="Best sellers" products={bestSellers} actionFor={productAction} to="/app/menu?collection=best-sellers" />
+      <section className="group-deals"><SectionHeading eyebrow="BETTER TOGETHER" title="Group deals" to="/app/menu?collection=family" link="See picks" /><div className="deal-grid"><Link to="/app/menu?collection=for-two"><CustomerAsset src="/assets/hero/hero-friends-sharing.png" alt="Friends sharing pizza" /><span>FOR TWO</span><h3>Pizza night, sorted.</h3></Link><Link to="/app/menu?collection=family"><CustomerAsset src="/assets/lifestyle/lifestyle-family-combo.png" alt="Family sharing pizza and sides" /><span>FEED THE CREW</span><h3>Big table energy.</h3></Link></div></section>
+    </>}
+
+    <section className="referral-card"><CustomerAsset src="/assets/lifestyle/lifestyle-referral-friends.png" alt="Friends sharing pizza together" /><div><Gift /><span>SHARE THE WAVE</span><h2>Give ₹50.<br />Get 60 points.</h2><Link to="/app/refer">INVITE A FRIEND <ArrowRight /></Link></div></section>
+    <section className="service-note"><div><Pizza /><span><strong>Fresh from Grand Road</strong>Puri, Odisha</span></div><div><UsersRound /><span><strong>Made for sharing</strong>Or keeping to yourself</span></div></section>
   </div>
 }

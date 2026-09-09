@@ -3,8 +3,8 @@ export const endpoints = {
   recommendations: '/recommendations', search: '/search',
   availability: '/availability', ownerAvailability: '/owner/availability', kdsAvailability: '/kds/availability',
   cart: '/cart', cartItems: '/cart/items', cartQuote: '/cart/quote',
-  checkoutIntent: '/checkout/intent',
-  paymentInitiate: '/payment/initiate',
+  checkoutOptions: '/checkout/options', checkoutSession: '/checkout/session', checkoutIntent: '/checkout/order-intent',
+  paymentInitiate: '/payments/phonepe/initiate',
   orders: '/orders',
   ownerOrders: '/owner/orders', ownerAttention: '/owner/attention', ownerCustomers: '/owner/customers',
   kdsQueue: '/kds/queue', kdsOrders: '/kds/orders',
@@ -13,16 +13,17 @@ export const endpoints = {
   chatMessage: '/chat/message', chatConversations: '/chat/conversations',
   supportCases: '/support/cases',
   refunds: '/refunds',
-  authCustomerOtpRequest: '/auth/customer/otp/request', authCustomerOtpVerify: '/auth/customer/otp/verify',
+  authCustomerOtpRequest: '/auth/customer/request-otp', authCustomerOtpVerify: '/auth/customer/verify-otp',
   authOwnerLogin: '/auth/owner/login', authKdsLogin: '/auth/kds/login',
   configStore: '/config/store',
   demoReset: '/demo/reset', demoScenarios: '/demo/scenarios', demoScenario: '/demo/scenario',
   demoCapabilities: '/demo/capabilities', demoSession: '/demo/session',
 } as const
 
-export const paymentStatus = (merchantOrderId: string) => `/payment/${merchantOrderId}/status`
-export const paymentConfirm = (merchantOrderId: string) => `/payment/${merchantOrderId}/confirm`
-export const paymentFail = (merchantOrderId: string) => `/payment/${merchantOrderId}/fail`
+export const paymentStatus = (paymentId: string) => `/payments/${paymentId}`
+export const paymentConfirm = (paymentId: string) => `/demo/payments/${paymentId}/succeed`
+export const paymentFail = (paymentId: string) => `/demo/payments/${paymentId}/fail`
+export const paymentPending = (paymentId: string) => `/demo/payments/${paymentId}/pending`
 export const orderById = (orderId: string) => `/orders/${orderId}`
 export const orderEvents = (orderId: string) => `/orders/${orderId}/events`
 export const orderComplete = (orderId: string) => `/orders/${orderId}/complete`

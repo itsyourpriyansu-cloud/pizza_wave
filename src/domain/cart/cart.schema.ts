@@ -20,5 +20,9 @@ export const cartSchema = z.object({
 /** Flat shape the Stage 1 UI already renders (CartItem + Product, no modifiers/quote fields). */
 export const legacyCartSchema = z.object({
   id: z.string(), customerId: z.string().optional(), status: z.literal('ACTIVE'), updatedAt: z.string(),
-  items: z.array(z.object({ id: z.string(), cartId: z.string(), productId: z.string(), quantity: z.number().int().positive(), product: legacyProductViewSchema })),
+  items: z.array(z.object({
+    id: z.string(), cartId: z.string(), productId: z.string(), quantity: z.number().int().positive(),
+    modifiers: z.array(cartItemModifierSelectionSchema).default([]), unitPriceSnapshot: z.number().nonnegative(),
+    product: legacyProductViewSchema,
+  })),
 })

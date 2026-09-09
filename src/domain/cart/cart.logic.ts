@@ -4,7 +4,7 @@ import type { LegacyCart } from './cart.types'
 export function buildCartSnapshot(cart: LegacyCart) {
   return {
     cartId: cart.id,
-    items: cart.items.map((item) => ({ productId: item.productId, quantity: item.quantity, unitPrice: item.product.price, name: item.product.name })),
+    items: cart.items.map((item) => ({ productId: item.productId, quantity: item.quantity, unitPrice: item.unitPriceSnapshot, name: item.product.name, modifiers: item.modifiers })),
     takenAt: new Date().toISOString(),
   }
 }

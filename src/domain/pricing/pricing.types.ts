@@ -11,4 +11,6 @@ export interface PricingInput {
   pointsAvailable: number
   pointsRequested: number
   deliveryFeeTable: { DELIVERY: number; PICKUP: number; STORE: number }
+  threshold?: { target: number; label: string }
+  availabilityIssues?: NonNullable<CartQuote['availabilityIssues']>
 }

@@ -9,9 +9,11 @@ export const orderSourceSchema = z.enum(['PWA', 'STORE_SELF', 'STORE_ASSISTED', 
 
 export const orderIntentSchema = z.object({
   id: z.string(), customerId: z.string(), fulfillmentType: fulfillmentModeSchema,
-  cartSnapshot: z.object({ cartId: z.string(), items: z.array(z.object({ productId: z.string(), quantity: z.number(), unitPrice: z.number(), name: z.string() })), takenAt: z.string() }),
+  checkoutSessionId: z.string().optional(),
+  cartSnapshot: z.object({ cartId: z.string(), items: z.array(z.object({ productId: z.string(), quantity: z.number(), unitPrice: z.number(), name: z.string(), modifiers: z.array(z.object({ groupId: z.string(), optionIds: z.array(z.string()) })).optional() })), takenAt: z.string() }),
   addressSnapshot: z.object({ line1: z.string(), city: z.string(), pincode: z.string() }).optional(),
   pickupSlot: z.string().optional(),
+  customerPhone: z.string().optional(), instructions: z.string().optional(), note: z.string().optional(),
   quoteSnapshot: cartQuoteSchema,
   expectedPromiseAt: z.string(),
   expiresAt: z.string(),

@@ -11,6 +11,7 @@ import type { SupportCase } from '../../domain/support/support.types'
 import type { Refund } from '../../domain/refunds/refund.types'
 import type { AttentionItem } from '../../domain/attention/attention.types'
 import type { AnySession } from '../../domain/auth/auth.types'
+import type { CheckoutSession } from '../../domain/checkout/checkout.types'
 
 export interface StoredCartItem extends CartItem { quantity: number }
 /** Generic key/value store: 'storeConfig' -> StoreConfig, 'capabilities' -> Capabilities, 'customerLoggedIn' -> boolean, 'orderSequence' -> number. */
@@ -25,6 +26,7 @@ export class PizzaWaveDatabase extends Dexie {
   availability!: EntityTable<AvailabilityRecord, 'id'>
   carts!: EntityTable<Omit<LegacyCart, 'items'>, 'id'>
   cartItems!: EntityTable<StoredCartItem, 'id'>
+  checkoutSessions!: EntityTable<CheckoutSession, 'id'>
   orderIntents!: EntityTable<OrderIntent, 'id'>
   payments!: EntityTable<PaymentAttempt, 'id'>
   orders!: EntityTable<Order, 'id'>
@@ -41,8 +43,9 @@ export class PizzaWaveDatabase extends Dexie {
   config!: EntityTable<ConfigRecord, 'key'>
 
   constructor() {
-    super('pizza-wave-prototype')
-    this.version(1).stores({
+    // New prototype namespace avoids unsafe primary-key upgrades from the early Stage 1 database.
+    super('pizza-wave-prototype-v2')
+    const stores = {
       customers: 'id, phone, tier', products: 'id, categoryId, available, basePrice', categories: 'id, sortOrder',
       availability: 'id, entityId, entityType, source, expiresAt', carts: 'id, customerId, status, updatedAt',
       cartItems: 'id, cartId, productId, [cartId+productId]',
@@ -60,7 +63,11 @@ export class PizzaWaveDatabase extends Dexie {
       sessions: 'id, realm',
       auditLogs: 'id, actor, entityType, entityId, at',
       config: 'key',
-    })
+    }
+    this.version(1).stores(stores)
+    this.version(2).stores({ checkoutSessions: 'id, customerId, cartId, status, expiresAt' })
+    // Payment status lookup is part of the Stage 4 customer return flow.
+    this.version(3).stores({ orders: 'id, customerId, orderIntentId, paymentId, paymentStatus, acceptanceStatus, fulfillmentStatus, createdAt' })
   }
 }
 

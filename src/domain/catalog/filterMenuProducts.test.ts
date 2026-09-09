@@ -14,6 +14,6 @@ describe('product search and smart collections', () => {
     for (const collection of smartCollectionSeed) {
       expect(filterMenuProducts(products, { category: 'all', collection: collection.id, query: '' }).length).toBeGreaterThan(0)
     }
-    expect(filterMenuProducts(products, { category: 'all', collection: 'best-sellers', query: '' }).map((item) => item.id)).toEqual(['PIZZA-VEG-001', 'SHAKE-001'])
+    expect(filterMenuProducts(products, { category: 'all', collection: 'best-sellers', query: '' }).map((item) => item.id)).toEqual(['PIZZA-VEG-001', 'PIZZA-PANEER-001', 'FRIES-001', 'SHAKE-001'])
   })
 })

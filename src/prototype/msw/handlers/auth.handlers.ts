@@ -7,21 +7,30 @@ import { demoCustomerAuthProvider } from '../../../services/auth/DemoCustomerAut
 import { API, boot, error, json, now } from './_shared'
 
 export const authHandlers = [
-  http.post(`${API}/auth/customer/otp/request`, async ({ request }) => {
+  http.post(`${API}/auth/customer/request-otp`, async ({ request }) => {
     await boot()
     const { phone } = await request.json() as { phone: string }
     const result = await demoCustomerAuthProvider.requestOtp(phone)
     return json(result)
   }),
 
-  http.post(`${API}/auth/customer/otp/verify`, async ({ request }) => {
+  http.post(`${API}/auth/customer/verify-otp`, async ({ request }) => {
     await boot()
     const { phone, otp } = await request.json() as { phone: string; otp: string }
     const result = await demoCustomerAuthProvider.verifyOtp(phone, otp)
     if (!result.verified || !result.customerId) return error('Invalid OTP', 401)
     const session = createCustomerSession(result.customerId, now())
+    await db.sessions.where('realm').equals('CUSTOMER').delete()
     await db.sessions.put({ id: createId('SESSION'), realm: 'CUSTOMER', payload: session })
+    await db.config.put({ key: 'customerLoggedIn', value: true })
     return json(session)
+  }),
+
+  http.post(`${API}/auth/customer/logout`, async () => {
+    await boot()
+    await db.sessions.where('realm').equals('CUSTOMER').delete()
+    await db.config.put({ key: 'customerLoggedIn', value: false })
+    return json({ ok: true })
   }),
 
   http.post(`${API}/auth/owner/login`, async ({ request }) => {

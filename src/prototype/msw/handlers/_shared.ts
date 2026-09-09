@@ -15,8 +15,23 @@ export const API = '*/api/v1'
 export const json = <T,>(value: T, status = 200) => HttpResponse.json(value as never, { status })
 export const error = (message: string, status = 400) => HttpResponse.json({ message } as never, { status })
 
+let bootInFlight: Promise<void> | null = null
+
+/**
+ * Every customer query can arrive together on the first render. Keep the seed/migration
+ * transaction single-flight so parallel handlers cannot all decide the database is empty
+ * and reset it over one another. The reference is released after each check so a later
+ * cleared or upgraded database can still repair itself.
+ */
 export async function boot(): Promise<void> {
-  await ensureDemoDatabase()
+  if (bootInFlight) return bootInFlight
+  const currentBoot = ensureDemoDatabase()
+  bootInFlight = currentBoot
+  try {
+    await currentBoot
+  } finally {
+    if (bootInFlight === currentBoot) bootInFlight = null
+  }
 }
 
 export async function getStoreConfig(): Promise<StoreConfig> {

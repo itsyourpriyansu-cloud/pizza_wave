@@ -30,3 +30,9 @@ export function failPayment(attempt: PaymentAttempt, reason: string): PaymentAtt
   if (!canTransitionPayment(attempt.status, 'FAILED')) throw new InvalidPaymentTransitionError(attempt.status, 'FAILED')
   return { ...attempt, status: 'FAILED', failureReason: reason }
 }
+
+export function reconcilePayment(attempt: PaymentAttempt): PaymentAttempt {
+  if (attempt.status === 'RECONCILING') return attempt
+  if (!canTransitionPayment(attempt.status, 'RECONCILING')) throw new InvalidPaymentTransitionError(attempt.status, 'RECONCILING')
+  return { ...attempt, status: 'RECONCILING' }
+}

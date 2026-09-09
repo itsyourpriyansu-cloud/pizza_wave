@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 import { db } from '../database/db'
 import { DEMO_CART_ID, ensureDemoDatabase, resetDemoDatabase } from './reset-demo'
+import { boot } from '../msw/handlers/_shared'
 
 describe('resetDemoDatabase', () => {
   beforeEach(async () => { await resetDemoDatabase() })
@@ -36,5 +37,29 @@ describe('ensureDemoDatabase', () => {
     await db.products.clear()
     await ensureDemoDatabase()
     expect(await db.products.count()).toBe(12)
+  })
+
+  it('repairs an incomplete seed instead of leaving customer queries broken', async () => {
+    await resetDemoDatabase()
+    await db.categories.delete('pizza')
+    await ensureDemoDatabase()
+    expect(await db.categories.count()).toBe(7)
+    expect(await db.products.count()).toBe(12)
+  })
+
+  it('clears corrupt legacy cart snapshots that would produce a zero or invalid total', async () => {
+    await resetDemoDatabase()
+    await db.cartItems.add({ id: 'legacy-zero', cartId: DEMO_CART_ID, productId: 'PIZZA-VEG-001', quantity: 2, modifiers: [], unitPriceSnapshot: 0 })
+    await ensureDemoDatabase()
+    expect(await db.cartItems.count()).toBe(0)
+  })
+
+  it('serializes parallel first-load handler boots', async () => {
+    await db.transaction('rw', db.tables, async () => { await Promise.all(db.tables.map((table) => table.clear())) })
+    await Promise.all(Array.from({ length: 8 }, () => boot()))
+    expect(await db.products.count()).toBe(12)
+    expect(await db.categories.count()).toBe(7)
+    expect(await db.customers.count()).toBe(2)
+    expect(await db.carts.count()).toBe(1)
   })
 })

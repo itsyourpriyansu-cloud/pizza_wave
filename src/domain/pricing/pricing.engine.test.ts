@@ -30,4 +30,14 @@ describe('quoteCart', () => {
     expect(quote.total).toBeGreaterThanOrEqual(0)
     expect(quote.warnings.length).toBeGreaterThan(0)
   })
+
+  it('marks a quote invalid when server availability revalidation finds an issue', () => {
+    const quote = quoteCart({
+      items: [{ quantity: 1, unitPrice: 199 }], fulfillmentType: 'PICKUP', customerTier: 'GOLD',
+      pointsAvailable: 182, pointsRequested: 0, deliveryFeeTable,
+      availabilityIssues: [{ itemId: 'item', productId: 'pizza', entityId: 'mushroom', kind: 'MODIFIER', displayName: 'Mushroom', message: 'Mushroom topping is temporarily unavailable.' }],
+    })
+    expect(quote.valid).toBe(false)
+    expect(quote.availabilityIssues).toHaveLength(1)
+  })
 })

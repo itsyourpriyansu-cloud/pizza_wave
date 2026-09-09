@@ -1,28 +1,106 @@
 import { http } from 'msw'
-import { db } from '../../database/db'
+import { db, type StoredCartItem } from '../../database/db'
 import { DEMO_CART_ID } from '../../demo/reset-demo'
 import { quoteCart } from '../../../domain/pricing/pricing.engine'
 import { toLegacyProductView } from '../../../domain/catalog/catalog.view'
-import type { LegacyCart } from '../../../domain/cart/cart.types'
-import { API, boot, getStoreConfig, json } from './_shared'
+import { configuredUnitPrice, defaultModifierSelections, validateModifierSelections } from '../../../domain/catalog/modifier.engine'
+import { cartItemModifierSelectionSchema } from '../../../domain/cart/cart.schema'
+import { getEffectiveAvailability } from '../../../domain/availability/availability.engine'
+import type { CartItemModifierSelection, LegacyCart } from '../../../domain/cart/cart.types'
+import type { Product } from '../../../domain/catalog/catalog.types'
+import type { CartQuote } from '../../../domain/pricing/pricing.types'
+import type { FulfillmentMode } from '../../../domain/customer/customer.types'
+import type { AvailabilityRecord } from '../../../domain/availability/availability.types'
+import { API, boot, error, getStoreConfig, json } from './_shared'
 import { eventBus } from '../../events/event-bus'
+
+interface CartItemBody { productId: string; quantity?: number; modifiers?: CartItemModifierSelection[] }
+interface CartItemPatch { quantity?: number; modifiers?: CartItemModifierSelection[] }
+
+const selectionKey = (selections: CartItemModifierSelection[]) => selections
+  .map((selection) => `${selection.groupId}:${[...selection.optionIds].sort().join(',')}`)
+  .sort()
+  .join('|')
+
+type PreparedSelections = { ok: true; selections: CartItemModifierSelection[]; unitPrice: number } | { ok: false; message: string }
+
+function prepareSelections(product: Product, requested?: CartItemModifierSelection[]): PreparedSelections {
+  const groups = product.modifierGroups ?? []
+  const parsed = requested === undefined
+    ? defaultModifierSelections(groups)
+    : cartItemModifierSelectionSchema.array().safeParse(requested)
+  if ('success' in parsed && !parsed.success) return { ok: false, message: 'Modifier selections are malformed.' }
+  const selections = Array.isArray(parsed) ? parsed : parsed.data
+  const issues = validateModifierSelections(groups, selections)
+  if (issues.length) return { ok: false, message: issues[0].message }
+  return { ok: true, selections, unitPrice: configuredUnitPrice(product.basePrice, groups, selections) }
+}
+
+function unavailableSelectedOption(product: Product, selections: CartItemModifierSelection[], records: AvailabilityRecord[]) {
+  for (const selection of selections) {
+    const group = product.modifierGroups?.find((candidate) => candidate.id === selection.groupId)
+    for (const optionId of selection.optionIds) {
+      const option = group?.options.find((candidate) => candidate.id === optionId)
+      if (!option || !option.available || getEffectiveAvailability(optionId, records, new Date()).status !== 'AVAILABLE') return option?.name ?? 'Selected option'
+    }
+  }
+  return undefined
+}
 
 async function getCart(): Promise<LegacyCart> {
   const cart = await db.carts.get(DEMO_CART_ID)
   if (!cart) throw new Error('Demo cart missing')
   const rows = await db.cartItems.where('cartId').equals(cart.id).toArray()
   const products = await db.products.bulkGet(rows.map((row) => row.productId))
-  return { ...cart, items: rows.map((row, index) => ({ ...row, product: toLegacyProductView(products[index]!) })) }
+  const items = rows.flatMap((row, index) => {
+    const product = products[index]
+    return product ? [{ ...row, product: toLegacyProductView(product) }] : []
+  })
+  return { ...cart, items }
 }
 
-async function getQuote() {
-  const [cart, storeConfig] = await Promise.all([getCart(), getStoreConfig()])
+function availabilityIssues(rows: StoredCartItem[], products: Product[], records: AvailabilityRecord[]): NonNullable<CartQuote['availabilityIssues']> {
+  const checkedAt = new Date()
+  return rows.flatMap((row) => {
+    const product = products.find((candidate) => candidate.id === row.productId)
+    if (!product) return [{ itemId: row.id, productId: row.productId, entityId: row.productId, kind: 'PRODUCT' as const, displayName: 'This item', message: 'This item is no longer available.' }]
+    const issues: NonNullable<CartQuote['availabilityIssues']> = []
+    const productStatus = getEffectiveAvailability(product.id, records, checkedAt, product)
+    if (productStatus.status !== 'AVAILABLE') issues.push({
+      itemId: row.id, productId: product.id, entityId: product.id, kind: 'PRODUCT', displayName: product.name,
+      message: `${product.name} is temporarily unavailable.`,
+    })
+    for (const selection of row.modifiers) {
+      const group = product.modifierGroups?.find((candidate) => candidate.id === selection.groupId)
+      for (const optionId of selection.optionIds) {
+        const option = group?.options.find((candidate) => candidate.id === optionId)
+        const status = getEffectiveAvailability(optionId, records, checkedAt)
+        if (!option || !option.available || status.status !== 'AVAILABLE') {
+          const displayName = option?.name ?? 'A selected option'
+          issues.push({
+            itemId: row.id, productId: product.id, entityId: optionId, kind: 'MODIFIER', displayName,
+            message: group?.id === 'toppings' ? `${displayName} topping is temporarily unavailable.` : `${displayName} is temporarily unavailable.`,
+          })
+        }
+      }
+    }
+    return issues
+  })
+}
+
+async function getQuote(fulfillmentType: FulfillmentMode = 'DELIVERY', pointsRequested = 0) {
+  const [cart, storeConfig, records, thresholdRecord] = await Promise.all([
+    getCart(), getStoreConfig(), db.availability.toArray(), db.config.get('cartThreshold'),
+  ])
   const customer = await db.customers.get(cart.customerId ?? 'CUST001')
+  const products = await db.products.bulkGet(cart.items.map((item) => item.productId))
+  const liveProducts = products.filter((product): product is Product => Boolean(product))
+  const threshold = thresholdRecord?.value as { target: number; label: string } | undefined
   return quoteCart({
-    items: cart.items.map((item) => ({ quantity: item.quantity, unitPrice: item.product.price })),
-    fulfillmentType: 'DELIVERY', customerTier: customer?.tier ?? 'MEMBER',
-    pointsAvailable: customer?.pointsAvailable ?? 0, pointsRequested: 0,
-    deliveryFeeTable: { DELIVERY: storeConfig.deliveryFeeFlat, PICKUP: 0, STORE: 0 },
+    items: cart.items.map((item) => ({ quantity: item.quantity, unitPrice: item.unitPriceSnapshot })),
+    fulfillmentType, customerTier: customer?.tier ?? 'MEMBER', pointsAvailable: customer?.pointsAvailable ?? 0,
+    pointsRequested, deliveryFeeTable: { DELIVERY: storeConfig.deliveryFeeFlat, PICKUP: 0, STORE: 0 },
+    threshold, availabilityIssues: availabilityIssues(cart.items, liveProducts, records),
   })
 }
 
@@ -31,20 +109,46 @@ export const cartHandlers = [
 
   http.post(`${API}/cart/items`, async ({ request }) => {
     await boot()
-    const body = await request.json() as { productId: string; quantity?: number }
-    const existing = await db.cartItems.where('[cartId+productId]').equals([DEMO_CART_ID, body.productId]).first()
-    if (existing) await db.cartItems.update(existing.id, { quantity: existing.quantity + (body.quantity ?? 1) })
-    else await db.cartItems.add({ id: crypto.randomUUID(), cartId: DEMO_CART_ID, productId: body.productId, quantity: body.quantity ?? 1, modifiers: [], unitPriceSnapshot: 0 })
+    const body = await request.json() as CartItemBody
+    const product = await db.products.get(body.productId)
+    if (!product) return error('Product not found', 404)
+    const records = await db.availability.toArray()
+    if (getEffectiveAvailability(product.id, records, new Date(), product).status !== 'AVAILABLE') return error('Product is unavailable', 409)
+    const prepared = prepareSelections(product, body.modifiers)
+    if (!prepared.ok) return error(prepared.message, 400)
+    const unavailableOption = unavailableSelectedOption(product, prepared.selections, records)
+    if (unavailableOption) return error(`${unavailableOption} is unavailable`, 409)
+    const rows = await db.cartItems.where('cartId').equals(DEMO_CART_ID).toArray()
+    const existing = rows.find((row) => row.productId === body.productId && selectionKey(row.modifiers) === selectionKey(prepared.selections))
+    if (existing) await db.cartItems.update(existing.id, { quantity: existing.quantity + (body.quantity ?? 1), unitPriceSnapshot: prepared.unitPrice })
+    else await db.cartItems.add({ id: crypto.randomUUID(), cartId: DEMO_CART_ID, productId: body.productId, quantity: body.quantity ?? 1, modifiers: prepared.selections, unitPriceSnapshot: prepared.unitPrice })
     eventBus.emit('CART_UPDATED', { productId: body.productId })
     return json(await getCart(), 201)
   }),
 
   http.patch(`${API}/cart/items/:itemId`, async ({ params, request }) => {
     await boot()
-    const body = await request.json() as { quantity: number }
-    if (body.quantity <= 0) await db.cartItems.delete(String(params.itemId))
-    else await db.cartItems.update(String(params.itemId), { quantity: body.quantity })
-    eventBus.emit('CART_UPDATED', { itemId: params.itemId })
+    const id = String(params.itemId)
+    const body = await request.json() as CartItemPatch
+    const row = await db.cartItems.get(id)
+    if (!row) return error('Cart item not found', 404)
+    if (body.quantity !== undefined && body.quantity <= 0) await db.cartItems.delete(id)
+    else {
+      const changes: Partial<StoredCartItem> = {}
+      if (body.quantity !== undefined) changes.quantity = body.quantity
+      if (body.modifiers !== undefined) {
+        const product = await db.products.get(row.productId)
+        if (!product) return error('Product not found', 404)
+        const prepared = prepareSelections(product, body.modifiers)
+        if (!prepared.ok) return error(prepared.message, 400)
+        const unavailableOption = unavailableSelectedOption(product, prepared.selections, await db.availability.toArray())
+        if (unavailableOption) return error(`${unavailableOption} is unavailable`, 409)
+        changes.modifiers = prepared.selections
+        changes.unitPriceSnapshot = prepared.unitPrice
+      }
+      await db.cartItems.update(id, changes)
+    }
+    eventBus.emit('CART_UPDATED', { itemId: id })
     return json(await getCart())
   }),
 
@@ -55,7 +159,12 @@ export const cartHandlers = [
     return json(await getCart())
   }),
 
-  http.post(`${API}/cart/quote`, async () => { await boot(); return json(await getQuote()) }),
+  http.post(`${API}/cart/quote`, async ({ request }) => {
+    await boot()
+    const body = await request.json().catch(() => ({})) as { fulfillmentMode?: FulfillmentMode; pointsRequested?: number }
+    const mode = body.fulfillmentMode && ['DELIVERY', 'PICKUP', 'STORE'].includes(body.fulfillmentMode) ? body.fulfillmentMode : 'DELIVERY'
+    return json(await getQuote(mode, Math.max(0, Math.floor(body.pointsRequested ?? 0))))
+  }),
 ]
 
-export { getCart, getQuote }
+export { getCart, getQuote, prepareSelections }

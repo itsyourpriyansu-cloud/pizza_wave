@@ -33,13 +33,28 @@ export class DemoPhonePeProvider implements PaymentProvider {
   }
 
   /** Demo-only control surface — not part of the PaymentProvider interface a real adapter would expose this way. */
-  succeedDemoPayment(merchantOrderId: string): void {
+  private setDemoStatus(merchantOrderId: string, amount: number, status: DemoAttempt['status']): void {
     const attempt = this.attempts.get(merchantOrderId)
-    if (attempt) attempt.status = 'CONFIRMED'
+    if (attempt) {
+      attempt.status = status
+      return
+    }
+    // A service worker may be restarted between initiate and the demo return action.
+    // Rehydrate the simulated provider record from the durable backend payment attempt.
+    this.attempts.set(merchantOrderId, {
+      merchantOrderId, amount, status, outcome: status === 'FAILED' ? 'FAIL' : status === 'PENDING' ? 'STAY_PENDING' : 'AUTO_CONFIRM',
+      providerTransactionId: createId('PHONEPE-TXN'),
+    })
   }
-  failDemoPayment(merchantOrderId: string): void {
-    const attempt = this.attempts.get(merchantOrderId)
-    if (attempt) attempt.status = 'FAILED'
+
+  succeedDemoPayment(merchantOrderId: string, amount = 0): void {
+    this.setDemoStatus(merchantOrderId, amount, 'CONFIRMED')
+  }
+  failDemoPayment(merchantOrderId: string, amount = 0): void {
+    this.setDemoStatus(merchantOrderId, amount, 'FAILED')
+  }
+  keepDemoPaymentPending(merchantOrderId: string, amount = 0): void {
+    this.setDemoStatus(merchantOrderId, amount, 'PENDING')
   }
   resolvePendingDemoPayment(merchantOrderId: string, status: 'CONFIRMED' | 'FAILED'): void {
     const attempt = this.attempts.get(merchantOrderId)

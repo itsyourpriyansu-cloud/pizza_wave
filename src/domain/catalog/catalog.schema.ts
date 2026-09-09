@@ -3,9 +3,10 @@ import { z } from 'zod'
 export const stationSchema = z.enum(['PIZZA', 'FRY', 'BEVERAGE', 'ASSEMBLY'])
 export const badgeSchema = z.enum(['Bestseller', 'New', 'Veg', 'Spicy', 'Wave Exclusive', 'Customizable'])
 
+export const variantDependencySchema = z.object({ groupId: z.string(), optionIds: z.array(z.string()).min(1) })
 export const modifierOptionSchema = z.object({
-  id: z.string(), name: z.string(), priceDelta: z.number(), available: z.boolean().optional().default(true),
-  dependencies: z.array(z.string()).optional(),
+  id: z.string(), name: z.string(), groupId: z.string(), priceDelta: z.number(),
+  available: z.boolean().optional().default(true), variantDependencies: z.array(variantDependencySchema).default([]),
 })
 export const modifierGroupSchema = z.object({
   id: z.string(), name: z.string(), required: z.boolean(),
@@ -37,4 +38,10 @@ export const legacyProductViewSchema = z.object({
   id: z.string(), name: z.string(), description: z.string(), category: z.string(), price: z.number(),
   veg: z.boolean(), available: z.boolean(), prepMinutes: z.number(), complexity: z.number(), station: stationSchema,
   image: z.string(), badges: z.array(badgeSchema), modifierGroups: z.array(modifierGroupSchema).optional(),
+})
+
+export const productDetailResponseSchema = z.object({
+  product: legacyProductViewSchema,
+  pairings: z.array(legacyProductViewSchema),
+  pointsPreview: z.number().int().nonnegative(),
 })

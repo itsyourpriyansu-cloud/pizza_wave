@@ -1,22 +1,23 @@
-import { motion } from 'framer-motion'
 import { Plus } from 'lucide-react'
 import type { CartItem, Product } from '../../../shared/types/domain'
 import { IconButton, QuantityStepper } from '../../../shared/components'
 import { getProductAsset } from '../../../shared/utils/assets'
+import { AnimatePresence, motion } from 'framer-motion'
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 
 export function ProductCard({ product, cartItem, onAdd, onQuantity }: { product: Product; cartItem?: CartItem; onAdd: () => void; onQuantity: (value: number) => void }) {
   const [failed, setFailed] = useState(false)
   const asset = getProductAsset(product.id, product.image)
-  return <motion.article className="product-card" layout whileTap={{ scale: 0.99 }}>
-    <div className={`product-art art-${product.category}`}>
-      {!failed ? <img src={asset.src} alt="" loading="lazy" onError={() => setFailed(true)} /> : <div className="food-fallback" aria-label={`${product.name} image coming soon`}><span>{asset.fallbackLabel}</span><i /></div>}
-      {product.badges[0] && <span className="product-badge">{product.badges[0]}</span>}
-    </div>
+  return <motion.article className="product-card" layout initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: .2 }}>
+    <Link className={`product-art art-${product.category}`} to={`/app/product/${product.id}`} aria-label={`View ${product.name}`}>
+      {!failed ? <img src={asset.src} alt={product.name} loading="lazy" onError={() => setFailed(true)} /> : <div className="food-fallback" role="img" aria-label={`${product.name} branded placeholder`}><span>{asset.fallbackLabel}</span><i /></div>}
+      <div className="product-badges">{product.badges.filter((badge) => !['Veg', 'Customizable'].includes(badge)).slice(0, 2).map((badge) => <span className={`product-badge badge-${badge.toLowerCase().replace(' ', '-')}`} key={badge}>{badge}</span>)}</div>
+    </Link>
     <div className="product-copy">
       <div className={`veg-marker ${product.veg ? 'veg' : 'non-veg'}`} aria-label={product.veg ? 'Vegetarian' : 'Non-vegetarian'}><span /></div>
-      <h3>{product.name}</h3><p>{product.description}</p>
-      <div className="product-foot"><strong>₹{product.price}</strong>{!product.available ? <span className="unavailable">Unavailable</span> : cartItem ? <QuantityStepper value={cartItem.quantity} onChange={onQuantity} /> : <IconButton aria-label={`Add ${product.name}`} onClick={onAdd}><Plus /></IconButton>}</div>
+      <h3><Link to={`/app/product/${product.id}`}>{product.name}</Link></h3><p>{product.description}</p>
+      <div className="product-foot"><strong>₹{product.price}</strong><AnimatePresence mode="wait" initial={false}>{!product.available ? <motion.span key="unavailable" className="unavailable" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>Unavailable</motion.span> : cartItem ? <motion.div key="stepper" initial={{ opacity: 0, scale: .82 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: .82 }}><QuantityStepper value={cartItem.quantity} onChange={onQuantity} /></motion.div> : <motion.div key="add" initial={{ opacity: 0, scale: .82 }} animate={{ opacity: 1, scale: 1 }} whileTap={{ scale: .86 }}><IconButton aria-label={`Add ${product.name}`} onClick={onAdd}><Plus /></IconButton></motion.div>}</AnimatePresence></div>
     </div>
   </motion.article>
 }

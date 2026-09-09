@@ -11,20 +11,27 @@ export function quoteCart(input: PricingInput): CartQuote {
   const itemCount = input.items.reduce((total, item) => total + item.quantity, 0)
   const subtotal = input.items.reduce((total, item) => total + item.quantity * item.unitPrice, 0)
   const deliveryFee = input.deliveryFeeTable[input.fulfillmentType] ?? 0
-  const eligibleSpend = subtotal
+  const grossEligibleSpend = subtotal
 
-  const redemption = calculateRedemption(input.pointsRequested, input.pointsAvailable, eligibleSpend)
+  const redemption = calculateRedemption(input.pointsRequested, input.pointsAvailable, grossEligibleSpend)
   warnings.push(...redemption.warnings)
 
   const discount = redemption.pointsValue
+  const eligibleSpend = Math.max(0, grossEligibleSpend - discount)
   const total = Math.max(0, subtotal - discount + deliveryFee)
   const tier = tierById(input.customerTier)
-  const pointsToEarn = calculatePointsEarned(Math.max(0, eligibleSpend - discount), tier)
+  const pointsToEarn = calculatePointsEarned(eligibleSpend, tier)
 
   const valid = itemCount > 0
+  const availabilityIssues = input.availabilityIssues ?? []
+  const threshold = input.threshold ? {
+    ...input.threshold,
+    remaining: Math.max(0, input.threshold.target - subtotal),
+  } : undefined
 
   return {
     itemCount, subtotal, discount, pointsRequested: input.pointsRequested, pointsUsable: redemption.pointsUsable,
-    pointsValue: redemption.pointsValue, deliveryFee, eligibleSpend, pointsToEarn, total, warnings, valid,
+    pointsValue: redemption.pointsValue, pointsRedeemed: redemption.pointsUsable, deliveryFee, eligibleSpend,
+    pointsToEarn, total, threshold, availabilityIssues, warnings, valid: valid && availabilityIssues.length === 0,
   }
 }

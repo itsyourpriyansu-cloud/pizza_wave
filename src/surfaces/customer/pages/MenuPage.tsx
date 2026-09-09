@@ -1,6 +1,6 @@
-import { Search, SlidersHorizontal } from 'lucide-react'
+import { Search } from 'lucide-react'
 import { useMemo, useState } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { useMenu } from '../../../features/catalog/hooks/useCatalog'
 import { filterMenuProducts } from '../../../domain/catalog/filterMenuProducts'
 import { useCart, useCartActions } from '../../../features/cart/hooks/useCart'
@@ -8,17 +8,35 @@ import { ProductCard } from '../../../features/product/components/ProductCard'
 import { Chip, EmptyState, ErrorState, PageHeader, Skeleton } from '../../../shared/components'
 
 export default function MenuPage() {
-  const [params] = useSearchParams(); const menu = useMenu(); const cart = useCart(); const { add, update } = useCartActions()
-  const [query, setQuery] = useState(''); const [category, setCategory] = useState(params.get('category') ?? 'all'); const [collection, setCollection] = useState(params.get('collection') ?? '')
-  const products = useMemo(() => filterMenuProducts(menu.data?.products ?? [], { category, collection, query }), [menu.data, category, collection, query])
+  const [params] = useSearchParams()
+  const menu = useMenu()
+  const cart = useCart()
+  const { add, update } = useCartActions()
+  const [category, setCategory] = useState(params.get('category') ?? 'all')
+  const [collection, setCollection] = useState(params.get('collection') ?? '')
+  const products = useMemo(() => filterMenuProducts(menu.data?.products ?? [], { category, collection, query: '' }), [menu.data, category, collection])
+
   if (menu.isError) return <ErrorState retry={() => void menu.refetch()} />
-  const action = (productId: string) => { const item = cart.data?.items.find((row) => row.productId === productId); return { cartItem: item, onAdd: () => add.mutate(productId), onQuantity: (quantity: number) => item && update.mutate({ id: item.id, quantity }) } }
-  return <div className="menu-page">
-    <PageHeader eyebrow="FRESH FROM GRAND ROAD" title="Pick your favourites" action={<button className="round-filter" aria-label="Open filters"><SlidersHorizontal /></button>} />
-    <label className="menu-search"><Search /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search paneer, cheese, shake…" aria-label="Search menu" /></label>
-    <div className="sticky-categories"><Chip active={category === 'all'} onClick={() => setCategory('all')}>All</Chip>{menu.data?.categories.map((item) => <Chip key={item.id} active={category === item.id} onClick={() => setCategory(item.id)}>{item.name}</Chip>)}</div>
-    <div className="smart-collections">{menu.data?.collections.map((item) => <Chip key={item.id} active={collection === item.id} onClick={() => setCollection(collection === item.id ? '' : item.id)}>{item.name}</Chip>)}</div>
-    <div className="menu-count"><span>{products.length} picks</span><i /></div>
-    {menu.isPending ? <div className="product-grid">{Array.from({ length: 6 }, (_, i) => <Skeleton key={i} className="product-skeleton" />)}</div> : products.length ? <div className="product-grid">{products.map((product: import('../../../domain/catalog/catalog.types').LegacyProductView) => <ProductCard key={product.id} product={product} {...action(product.id)} />)}</div> : <EmptyState title="No matches yet" message="Try a different search or collection." />}
+
+  const action = (productId: string) => {
+    const item = cart.data?.items.find((row) => row.productId === productId)
+    return { cartItem: item, onAdd: () => add.mutate(productId), onQuantity: (quantity: number) => { if (item) update.mutate({ id: item.id, quantity }) } }
+  }
+  const chooseCategory = (value: string) => { setCategory(value); setCollection('') }
+  const chooseCollection = (value: string) => { setCollection(collection === value ? '' : value); setCategory('all') }
+  const showGrouped = category === 'all' && !collection
+
+  return <div className="menu-page stage-two-menu">
+    <PageHeader eyebrow="FRESH FROM GRAND ROAD" title="What’s your wave?" />
+    <Link className="menu-search" to="/app/search"><Search /><span>Search paneer, cheese, shake…</span></Link>
+
+    <div className="sticky-categories" aria-label="Menu categories"><Chip active={category === 'all'} onClick={() => chooseCategory('all')}>All</Chip>{menu.data?.categories.map((item) => <Chip key={item.id} active={category === item.id} onClick={() => chooseCategory(item.id)}>{item.name}</Chip>)}</div>
+    <div className="smart-collections" aria-label="Smart collections">{menu.data?.collections.map((item) => <Chip key={item.id} active={collection === item.id} onClick={() => chooseCollection(item.id)}>{item.name}</Chip>)}</div>
+
+    {menu.isPending ? <div className="product-grid">{Array.from({ length: 6 }, (_, i) => <Skeleton key={i} className="product-skeleton" />)}</div> : showGrouped && !products.length ? <EmptyState title="No matches yet" message="Fresh picks will appear here shortly." /> : showGrouped ? <div className="menu-groups">{menu.data?.categories.map((item) => {
+      const rows = (menu.data?.products ?? []).filter((product) => product.category === item.id)
+      if (!rows.length) return null
+      return <section className="menu-group" key={item.id}><div className="menu-group-head"><div><span>{String(rows.length).padStart(2, '0')} PICKS</span><h2>{item.name}</h2></div><button onClick={() => chooseCategory(item.id)}>View {item.name}</button></div><div className="menu-category-grid">{rows.map((product) => <ProductCard key={product.id} product={product} {...action(product.id)} />)}</div></section>
+    })}</div> : <><div className="menu-count"><span>{products.length} curated picks</span><i /></div>{products.length ? <div className="product-grid">{products.map((product) => <ProductCard key={product.id} product={product} {...action(product.id)} />)}</div> : <EmptyState title="No matches yet" message="Try a different category or collection." />}</>}
   </div>
 }
