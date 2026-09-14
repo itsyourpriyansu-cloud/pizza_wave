@@ -1,6 +1,6 @@
 import { useEffect, useState, type PropsWithChildren } from 'react'
 import { env } from '../../../app/config/env'
-import { ErrorState, Skeleton } from '../../../shared/components'
+import { ErrorState, Logo, Skeleton } from '../../../shared/components'
 import { startAutomationJobs } from '../../../prototype/automation/jobs'
 import { ensureScopedWorker } from '../../../services/pwa/ensureScopedWorker'
 
@@ -31,6 +31,6 @@ export function CustomerDataBoundary({ children }: PropsWithChildren) {
     bootCustomerRuntime().then(() => setState('ready')).catch(() => setState('error'))
   }, [])
   if (state === 'error') return <main className="boot-state"><ErrorState retry={() => location.reload()} /></main>
-  if (state === 'loading') return <main className="boot-state"><div className="brand-lockup"><span className="logo-wave">W</span><strong>THE PIZZA WAVE</strong></div><Skeleton className="boot-skeleton" /></main>
+  if (state === 'loading') return <main className="boot-state"><div className="brand-lockup"><Logo variant="full" size="lg" /></div><Skeleton className="boot-skeleton" /></main>
   return children
 }

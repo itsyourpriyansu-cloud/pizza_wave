@@ -12,6 +12,7 @@
     "demo": "vite --mode pitch",
     "pitch": "vite --mode pitch",
     "build:pitch": "npm run typecheck && vite build --mode pitch",
+    "build:vercel": "npm run build:pitch",
     "preview:pitch": "vite preview --port 4174",
     "build": "npm run typecheck && vite build",
     "preview": "vite preview",

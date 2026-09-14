@@ -16,7 +16,7 @@ import { referralSeed } from '../seed/retention.seed'
 import { demoWhatsAppProvider } from '../../services/messaging/DemoWhatsAppProvider'
 
 export const DEMO_CART_ID = 'CART-DEMO'
-const CATALOG_VERSION = 5
+const CATALOG_VERSION = 6
 const AUTH_VERSION = 1
 const OWNER_VERSION = 1
 const KDS_VERSION = 1

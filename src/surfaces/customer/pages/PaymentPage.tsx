@@ -1,10 +1,10 @@
-import { AlertCircle, ArrowLeft, ArrowRight, Check, Clock3, LoaderCircle, LockKeyhole, ShieldCheck, Smartphone, Waves } from 'lucide-react'
+import { AlertCircle, ArrowLeft, ArrowRight, Check, Clock3, LoaderCircle, LockKeyhole, ShieldCheck, Smartphone } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { env, showDemoTools } from '../../../app/config/env'
 import { usePaymentActions, usePaymentStatus } from '../../../features/payment/hooks/usePayment'
-import { ErrorState, IconButton, PrimaryButton, SecondaryButton, Skeleton } from '../../../shared/components'
+import { ErrorState, IconButton, Logo, PrimaryButton, SecondaryButton, Skeleton } from '../../../shared/components'
 import { CheckoutSteps } from './CheckoutPage'
 import { useAppStore } from '../../../stores/app.store'
 
@@ -56,12 +56,12 @@ export default function PaymentPage() {
   </section>
 
   if (payment.status === 'RECONCILING') return <section className="full-commerce-flow payment-page">
-    <header className="flow-header"><div className="flow-logo"><Waves /></div><div><span>PAYMENT</span><strong>Secure verification</strong></div></header><CheckoutSteps active="PAYMENT" />
+    <header className="flow-header"><div className="flow-logo"><Logo variant="mark" size={32} /></div><div><span>PAYMENT</span><strong>Secure verification</strong></div></header><CheckoutSteps active="PAYMENT" />
     <motion.div className="payment-result reconciling" initial={{ opacity: 0 }} animate={{ opacity: 1 }}><div className="result-icon"><LoaderCircle /></div><span>CHECKING YOUR PAYMENT…</span><h1>We’re reconciling with PhonePe.</h1><p>This demo payment is still pending. Keep this page open; backend status remains authoritative.</p><div className="reconcile-note"><Clock3 /><span>RECONCILING</span></div></motion.div>
   </section>
 
   if (payment.status === 'CONFIRMED' && order) return <section className="full-commerce-flow payment-page">
-    <header className="flow-header"><div className="flow-logo"><Waves /></div><div><span>ORDER {order.publicOrderNumber}</span><strong>Pizza Wave · Grand Road</strong></div></header><CheckoutSteps active="DONE" />
+    <header className="flow-header"><div className="flow-logo"><Logo variant="mark" size={32} /></div><div><span>ORDER {order.publicOrderNumber}</span><strong>Pizza Wave · Grand Road</strong></div></header><CheckoutSteps active="DONE" />
     <motion.div className="payment-result received" initial={{ opacity: 0, scale: .97 }} animate={{ opacity: 1, scale: 1 }}><div className="result-icon"><Check /></div><span>BACKEND VERIFIED</span><h1>PAYMENT RECEIVED ✓</h1><p>{order.acceptanceStatus === 'ACCEPTED' ? 'Your order is confirmed and synchronized with the kitchen.' : order.acceptanceStatus === 'REJECTED' ? 'The kitchen could not safely accept this order.' : "We're confirming your order with Pizza Wave…"}</p><div className="awaiting-card">{order.acceptanceStatus === 'ACCEPTED' ? <Check /> : order.acceptanceStatus === 'REJECTED' ? <AlertCircle /> : <LoaderCircle />}<div><span>{order.acceptanceStatus === 'ACCEPTED' ? 'ORDER CONFIRMED' : order.acceptanceStatus === 'REJECTED' ? 'REFUND STARTED' : order.acceptanceStatus === 'REVIEW_REQUIRED' ? 'KITCHEN REVIEW' : 'AWAITING ACCEPTANCE'}</span><strong>{order.acceptanceStatus === 'ACCEPTED' ? 'Your order is in the system kitchen queue.' : order.acceptanceStatus === 'REJECTED' ? 'Your full refund is being processed automatically.' : 'The store is reviewing your paid order.'}</strong></div></div><div className="received-meta"><div><span>PAID</span><strong>₹{payment.amount}</strong></div><div><span>POINTS PENDING</span><strong>+{order.financialSnapshot.pointsToEarn}</strong></div></div><PrimaryButton onClick={() => navigate(order.acceptanceStatus === 'REJECTED' ? '/app/support' : `/app/orders/${order.id}`)}>{order.acceptanceStatus === 'REJECTED' ? 'VIEW REFUND HELP' : 'TRACK ORDER'}</PrimaryButton><small>{order.acceptanceStatus === 'ACCEPTED' ? 'Live changes will appear without refreshing.' : 'Payment and acceptance remain separate backend states.'}</small></motion.div>
   </section>
 

@@ -4,6 +4,8 @@ import { Link } from 'react-router-dom'
 import { getProductAssetById, pizzaWaveAssets } from '../../../shared/utils/assets'
 import { CustomerAsset } from '../../customer/components/CustomerAsset'
 
+import { Logo } from '../../../shared/components'
+
 const foodPreview = [
   { id: 'PIZZA-PANEER-001', name: 'Paneer Cheese Pizza', note: 'A Puri favourite', price: 249 },
   { id: 'KULHAD-001', name: 'Signature Kulhad Pizza', note: 'Only at The Wave', price: 199 },
@@ -19,7 +21,7 @@ const returnBenefits = [
 
 export default function LandingPage() {
   return <main className="landing-page stage-ten-landing">
-    <nav className="landing-nav" aria-label="Pizza Wave introduction"><Link className="brand-lockup" to="/" aria-label="The Pizza Wave home"><span className="logo-wave">W</span><strong>THE PIZZA WAVE</strong></Link><a href="#visit"><MapPin /> Grand Road, Puri</a><Link className="button button-primary" to="/app/">ORDER NOW</Link></nav>
+    <nav className="landing-nav" aria-label="Pizza Wave introduction"><Link className="brand-lockup-link" to="/" aria-label="The Pizza Wave home"><Logo variant="full" size="md" /></Link><a href="#visit"><MapPin /> Grand Road, Puri</a><Link className="button button-primary" to="/app/">ORDER NOW</Link></nav>
 
     <section className="landing-hero">
       <motion.div className="landing-copy" initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: .42, ease: [0.22, 1, 0.36, 1] }}>
@@ -30,9 +32,11 @@ export default function LandingPage() {
         <div className="landing-proof"><span><Bike /> Delivery</span><span><Store /> Pickup</span><span><Gift /> Wave Points</span></div>
       </motion.div>
       <motion.div className="landing-art" initial={{ opacity: 0, scale: .96 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: .52, delay: .08, ease: [0.22, 1, 0.36, 1] }}>
-        <span className="art-stamp">HOT<br />NOW</span>
-        <div className="pizza-orbit"><CustomerAsset src={pizzaWaveAssets.hero.mainPizza} alt="Fresh Pizza Wave pizza with a dramatic cheese pull" eager fallbackLabel="The Pizza Wave" /></div>
-        <div className="art-label">BAKED IN PURI<br />SERVED WITH A WAVE</div>
+        <div className="landing-art-frame">
+          <div className="pizza-orbit"><CustomerAsset src={pizzaWaveAssets.hero.mainPizza} alt="Fresh Pizza Wave pizza with a dramatic cheese pull" eager fallbackLabel="The Pizza Wave" /></div>
+          <span className="art-stamp"><small>HOT</small><strong>NOW</strong></span>
+          <div className="art-label"><span>BAKED IN PURI</span><strong>SERVED WITH A WAVE</strong></div>
+        </div>
       </motion.div>
     </section>
 
@@ -52,7 +56,16 @@ export default function LandingPage() {
 
     <section className="landing-loyalty">
       <div className="landing-loyalty-copy"><span className="eyebrow">WAVE REWARDS</span><h2>Good pizza should bring you back.</h2><p>Rewards stay simple, visible and useful.</p><div className="loyalty-steps"><span><b>1</b>Order</span><span><b>2</b>Earn Wave Points</span><span><b>3</b>Move through membership levels</span><span><b>4</b>Get more reasons to come back</span></div><Link className="button landing-secondary" to="/app/rewards">START YOUR WAVE <ArrowRight /></Link></div>
-      <motion.div className="landing-tier-art" whileHover={{ scale: 1.025 }} transition={{ duration: .18 }}><CustomerAsset src={pizzaWaveAssets.loyalty.gold} alt="Gold Wave membership emblem" fallbackLabel="Gold Wave" /><span>GOLD WAVE</span><strong>182</strong><small>POINTS READY</small></motion.div>
+      <motion.div className="landing-tier-showcase" initial={{ opacity: 0, y: 18 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: .35 }} transition={{ duration: .45, ease: [0.22, 1, 0.36, 1] }}>
+        <motion.article className="landing-reward-pass" whileHover={{ y: -4 }} transition={{ duration: .2 }} aria-label="Priyanshu's Gold Wave membership with 182 points ready">
+          <header><Logo variant="full" theme="light" size="sm" /><strong><Sparkles /> GOLD WAVE</strong></header>
+          <div className="reward-pass-balance"><small>AVAILABLE BALANCE</small><div><strong>182</strong><span>WAVE POINTS<em>₹182 order value</em></span></div></div>
+          <svg className="reward-pass-waves" viewBox="0 0 260 120" aria-hidden="true"><path d="M-12 82 Q52 18 116 82 T244 82 T372 82" /><path d="M-12 112 Q52 48 116 112 T244 112 T372 112" /></svg>
+          <div className="reward-pass-utility"><span><Gift /> Ready to use</span><b>1 POINT = ₹1</b></div>
+          <footer><span><small>GOLD MEMBER</small><b>PRIYANSHU</b></span><span><small>HOME STORE</small><b>GRAND ROAD · PURI</b></span></footer>
+        </motion.article>
+        <div className="landing-tier-guide"><span><Gift /><b>Use from 50 points</b><small>Apply safely at cart</small></span><span><Sparkles /><b>Gold benefits active</b><small>More reasons to return</small></span></div>
+      </motion.div>
     </section>
 
     <section className="landing-fulfilment">
@@ -71,6 +84,6 @@ export default function LandingPage() {
     </section>
 
     <section className="landing-final-cta"><Pizza /><span>READY WHEN YOU ARE</span><h2>Catch your pizza wave.</h2><div><Link className="button button-primary" to="/app/">ORDER NOW <ArrowRight /></Link><Link className="button landing-secondary" to="/app/menu">VIEW MENU</Link></div></section>
-    <footer><div className="brand-lockup"><span className="logo-wave">W</span><strong>THE PIZZA WAVE</strong></div><p>Brand loud. Commerce quiet.</p></footer>
+    <footer><div className="brand-lockup"><Logo variant="full" size="md" /></div><p>Brand loud. Commerce quiet.</p></footer>
   </main>
 }

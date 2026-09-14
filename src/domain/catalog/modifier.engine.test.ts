@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { pizzaModifiers } from '../../prototype/seed/catalog.seed'
+import { kulhadPizzaModifiers, pizzaModifiers } from '../../prototype/seed/catalog.seed'
 import { availableOptions, configuredUnitPrice, defaultModifierSelections, validateModifierSelections } from './modifier.engine'
 
 describe('modifier engine', () => {
@@ -24,5 +24,13 @@ describe('modifier engine', () => {
     expect(availableOptions(cheese, [{ groupId: 'size', optionIds: ['large'] }]).some((option) => option.id === 'double-mozzarella')).toBe(true)
     const toppings = pizzaModifiers.find((group) => group.id === 'toppings')!
     expect(validateModifierSelections([toppings], [{ groupId: 'toppings', optionIds: ['paneer', 'mushroom', 'corn', 'olives'] }])[0]?.message).toContain('up to 3')
+  })
+
+  it('provides valid defaults and size-aware cheese for Kulhad Pizza', () => {
+    const selections = defaultModifierSelections(kulhadPizzaModifiers)
+    expect(validateModifierSelections(kulhadPizzaModifiers, selections)).toEqual([])
+    const cheese = kulhadPizzaModifiers.find((group) => group.id === 'cheese')!
+    expect(availableOptions(cheese, [{ groupId: 'size', optionIds: ['kulhad-classic'] }]).some((item) => item.id === 'double-mozzarella')).toBe(false)
+    expect(availableOptions(cheese, [{ groupId: 'size', optionIds: ['kulhad-duo'] }]).some((item) => item.id === 'double-mozzarella')).toBe(true)
   })
 })

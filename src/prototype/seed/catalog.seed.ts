@@ -22,9 +22,17 @@ export const pizzaModifiers: ModifierGroup[] = [
   { id: 'meal', name: 'Complete the Meal', required: false, minSelections: 0, maxSelections: 2, multiple: true, options: [option('meal', 'meal-fries', 'Peri Peri Fries', 79), option('meal', 'meal-garlic-bread', 'Cheesy Garlic Bread', 109), option('meal', 'meal-oreo-shake', 'Oreo Thick Shake', 129)] },
 ]
 
-const product = (id: string, slug: string, name: string, shortDescription: string, categoryId: string, basePrice: number, veg: boolean, prepMinutes: number, complexity: number, station: Product['station'], imageKey: string, badges: Product['badges'], modifiers = false, recommendedPairings: string[] = []): Product => ({
+/** Kulhad Pizza keeps the same seven-step builder contract with vessel-appropriate size and filling choices. */
+export const kulhadPizzaModifiers: ModifierGroup[] = pizzaModifiers.map((group) => {
+  if (group.id === 'size') return { ...group, options: [option('size', 'kulhad-classic', 'Classic Kulhad'), option('size', 'kulhad-duo', 'Sharing Duo', 170)] }
+  if (group.id === 'base') return { ...group, options: [option('base', 'kulhad-veg', 'Classic Veg Filling'), option('base', 'kulhad-paneer', 'Makhani Paneer Filling', 35), option('base', 'kulhad-corn', 'Cheesy Corn Filling', 25)] }
+  if (group.id === 'cheese') return { ...group, options: [option('cheese', 'regular-cheese', 'Regular'), option('cheese', 'extra-cheese', 'Extra', 45), option('cheese', 'double-mozzarella', 'Double Mozzarella', 75, [{ groupId: 'size', optionIds: ['kulhad-duo'] }])] }
+  return group
+})
+
+const product = (id: string, slug: string, name: string, shortDescription: string, categoryId: string, basePrice: number, veg: boolean, prepMinutes: number, complexity: number, station: Product['station'], imageKey: string, badges: Product['badges'], modifiers: boolean | ModifierGroup[] = false, recommendedPairings: string[] = []): Product => ({
   id, slug, name, shortDescription, categoryId, basePrice, veg, available: true, prepMinutes, complexity, station, imageKey, badges,
-  modifierGroups: modifiers ? pizzaModifiers : undefined, recommendedPairings,
+  modifierGroups: Array.isArray(modifiers) ? modifiers : modifiers ? pizzaModifiers : undefined, recommendedPairings,
 })
 
 export const productSeed: Product[] = [
@@ -32,7 +40,7 @@ export const productSeed: Product[] = [
   product('PIZZA-PANEER-001', 'paneer-cheese-pizza', 'Paneer Cheese Pizza', 'Paneer, capsicum and onion with a generous layer of mozzarella.', 'pizza', 229, true, 16, 2, 'PIZZA', 'pizza/paneer-cheese-pizza.webp', ['Bestseller', 'Veg', 'Customizable'], true, ['GARLIC-001', 'SHAKE-001']),
   product('PIZZA-MUSH-001', 'mushroom-cheese-pizza', 'Mushroom Cheese Pizza', 'Sliced mushroom, browned mozzarella and herbs.', 'pizza', 199, true, 16, 2, 'PIZZA', 'pizza/mushroom-cheese-pizza.webp', ['Veg', 'Customizable'], true, ['FRIES-001', 'COFFEE-001']),
   product('PIZZA-CHK-001', 'chicken-tikka-pizza', 'Chicken Tikka Pizza', 'Roasted chicken tikka, onion, capsicum and mozzarella.', 'pizza', 249, false, 18, 3, 'PIZZA', 'pizza/chicken-tikka-pizza.webp', ['Spicy', 'Customizable'], true, ['GARLIC-001', 'SHAKE-001']),
-  product('KULHAD-001', 'signature-kulhad-pizza', 'Signature Kulhad Pizza', 'Molten cheese and pizza filling baked in a rustic clay kulhad.', 'kulhad', 199, true, 20, 3, 'ASSEMBLY', 'kulhad/signature-kulhad-pizza.webp', ['Wave Exclusive', 'New', 'Veg']),
+  product('KULHAD-001', 'signature-kulhad-pizza', 'Signature Kulhad Pizza', 'Molten cheese and pizza filling baked in a rustic clay kulhad.', 'kulhad', 199, true, 20, 3, 'ASSEMBLY', 'kulhad/signature-kulhad-pizza.webp', ['Wave Exclusive', 'New', 'Veg', 'Customizable'], kulhadPizzaModifiers, ['FRIES-001', 'SHAKE-001']),
   product('BURGER-001', 'paneer-crunch-burger', 'Paneer Crunch Burger', 'Crisp paneer patty, lettuce, onion and signature sauce.', 'burger', 149, true, 10, 1, 'ASSEMBLY', 'burger/paneer-crunch-burger.webp', ['New', 'Veg']),
   product('WRAP-001', 'chicken-tikka-wrap', 'Chicken Tikka Wrap', 'Chicken tikka, fresh vegetables and sauce in a grilled wrap.', 'wrap', 179, false, 10, 1, 'ASSEMBLY', 'wrap/chicken-tikka-wrap.webp', ['Spicy']),
   product('FRIES-001', 'peri-peri-fries', 'Peri Peri Fries', 'Crisp fries tossed in lively peri-peri seasoning.', 'sides', 99, true, 6, 1, 'FRY', 'sides/peri-peri-fries.webp', ['Bestseller', 'Veg']),

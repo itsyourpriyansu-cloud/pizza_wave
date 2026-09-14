@@ -12,6 +12,19 @@ describe('resetDemoDatabase', () => {
     expect((await db.products.get('PIZZA-VEG-001'))?.basePrice).toBe(110)
   })
 
+  it('keeps every pizza product on the complete seven-step customization contract', async () => {
+    const products = await db.products.toArray()
+    const pizzas = products.filter((product) => product.categoryId === 'pizza' || product.name.toLowerCase().includes('pizza'))
+    expect(pizzas.map((product) => product.id).sort()).toEqual([
+      'KULHAD-001', 'PIZZA-CHK-001', 'PIZZA-MUSH-001', 'PIZZA-PANEER-001', 'PIZZA-VEG-001',
+    ])
+    for (const pizza of pizzas) {
+      expect(pizza.badges).toContain('Customizable')
+      expect(pizza.modifierGroups).toHaveLength(7)
+      expect(pizza.modifierGroups?.map((group) => group.id)).toEqual(['size', 'base', 'sauce', 'cheese', 'toppings', 'spice', 'meal'])
+    }
+  })
+
   it('seeds a resolvable store config and derived capabilities', async () => {
     const config = (await db.config.get('storeConfig'))?.value as { kdsOnline: boolean; acceptanceMode: string }
     expect(config.kdsOnline).toBe(true)

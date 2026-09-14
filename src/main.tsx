@@ -16,6 +16,7 @@ import './styles/stage7.css'
 import './styles/stage8.css'
 import './styles/stage9.css'
 import './styles/stage10.css'
+import './styles/delivery-tracking.css'
 import { AppProviders } from './app/providers/AppProviders'
 import { AppRouter } from './app/router/AppRouter'
 

@@ -1,16 +1,17 @@
 import {
   AlertTriangle, ArrowRight, BarChart3, BellRing, CircleUserRound, Command, Headphones, HeartHandshake,
   LayoutDashboard, LockKeyhole, LogOut, Menu, PackageCheck, Plus, Search, Settings2, ShieldCheck,
-  UsersRound, UtensilsCrossed, WalletCards,
+  Truck, UsersRound, UtensilsCrossed, WalletCards,
 } from 'lucide-react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useMemo, useState, type CSSProperties, type FormEvent, type ReactNode } from 'react'
-import { CenterDialog, Drawer, ErrorState, PrimaryButton, SecondaryButton, Skeleton, Switch, TextInput, TierPill } from '../../../shared/components'
+import { CenterDialog, Drawer, ErrorState, Logo, PrimaryButton, SecondaryButton, Skeleton, Switch, TextInput, TierPill } from '../../../shared/components'
 import { ownerLogin } from '../../../services/api/auth.api'
 import { getMenu } from '../../../services/api/catalog.api'
 import { sessionKeys } from '../../../app/router/routeGuards'
 import type { OwnerSession as BrowserOwnerSession } from '../../../shared/types/domain'
 import type { Order } from '../../../domain/orders/order.types'
+import { getFounderDeliveryWatch, isTrackableDelivery } from '../../../domain/orders/delivery-tracking'
 import type { AcceptanceMode, StoreConfig } from '../../../domain/store/store.types'
 import type { CampaignChannel, CampaignTiming, CrmOpportunity, WhatsAppMessageType } from '../../../domain/retention/retention.types'
 import {
@@ -73,7 +74,7 @@ function SideNav({ active, onChange, onSignOut }: { active: Section; onChange: (
     { id: 'config', label: 'Configuration', icon: <Settings2 />, hint: 'Policy controls' },
   ]
   return <aside className="owner-sidebar">
-    <div className="owner-wordmark"><div>PW</div><span><strong>THE PIZZA WAVE</strong><small>FOUNDER DESK</small></span></div>
+    <div className="owner-wordmark"><Logo variant="full" theme="light" size="md" /></div>
     <nav aria-label="Owner sections">{items.map((item) => <button type="button" className={active === item.id ? 'active' : ''} onClick={() => onChange(item.id)} key={item.id}>{item.icon}<span><strong>{item.label}</strong><small>{item.hint}</small></span></button>)}</nav>
     <div className="owner-sidebar-foot"><span className="owner-realm-badge"><ShieldCheck /> OWNER REALM</span><button type="button" onClick={onSignOut}><LogOut /> Sign out</button></div>
   </aside>
@@ -124,6 +125,24 @@ function KitchenHealth({ data }: { data: NonNullable<ReturnType<typeof useOwnerD
   </article>
 }
 
+function DeliveryWatch({ onOrder }: { onOrder: (orderId: string) => void }) {
+  const orders = useOwnerOrders()
+  const deliveries = (orders.data ?? []).filter(isTrackableDelivery).slice(0, 4)
+  return <section className="owner-delivery-watch">
+    <div className="owner-section-title"><div><span>DELIVERY WATCH</span><h2>Promises beyond the kitchen</h2></div><span className="owner-live-badge"><i /> LIVE</span></div>
+    <p className="owner-delivery-intro">The system watches preparation impact, rider handoff and customer ETA. Only a meaningful delay becomes an exception.</p>
+    {orders.isPending ? <Skeleton /> : deliveries.length ? <div className="owner-delivery-list">{deliveries.map((order) => {
+      const watch = getFounderDeliveryWatch(order)
+      const promise = order.promisedAt ? new Intl.DateTimeFormat('en-IN', { hour: 'numeric', minute: '2-digit' }).format(new Date(order.promisedAt)) : 'Updating'
+      return <button type="button" key={order.id} onClick={() => onOrder(order.id)}>
+        <span className={`owner-delivery-icon ${watch.level.toLowerCase()}`}><Truck /></span>
+        <span><small>{order.publicOrderNumber} · DELIVERY</small><strong>{watch.label}</strong><em>{watch.detail}</em></span>
+        <span><small>CUSTOMER PROMISE</small><strong>{promise}</strong><ArrowRight /></span>
+      </button>
+    })}</div> : <div className="owner-empty"><PackageCheck /><strong>No active deliveries</strong><span>New rider handoffs will appear here automatically.</span></div>}
+  </section>
+}
+
 function Dashboard({ onConfirm, onOrder, onSupport, onLive, onAvailability, onCustomer }: { onConfirm: (a: ConfirmAction) => void; onOrder: (id: string) => void; onSupport: () => void; onLive: (key: string) => void; onAvailability: () => void; onCustomer: () => void }) {
   const dashboard = useOwnerDashboard()
   if (dashboard.isPending) return <div className="owner-dashboard-loading"><Skeleton /><Skeleton /><Skeleton /></div>
@@ -133,6 +152,7 @@ function Dashboard({ onConfirm, onOrder, onSupport, onLive, onAvailability, onCu
   return <><StoreControls config={data.store} onConfirm={onConfirm} /><section className="owner-kpi-grid">{data.kpis.map((kpi) => <MetricCard key={kpi.label} {...kpi} />)}</section>
     <section className="owner-live-strip"><div className="owner-section-title"><div><span>LIVE OPERATIONS</span><h2>The floor, right now</h2></div><small>Counts open in context—no dashboard maze.</small></div><div>{live.map(([label, count, key]) => <button type="button" key={label} onClick={() => onLive(key)}><strong>{count}</strong><span>{label}</span><ArrowRight /></button>)}</div></section>
     <div className="owner-dashboard-grid"><section className="owner-attention"><div className="owner-section-title"><div><span>NEEDS YOUR ATTENTION</span><h2>Only the exceptions</h2></div><span className="owner-count-badge">UNRESOLVED</span></div><AttentionList onOrder={onOrder} onSupport={onSupport} /></section><KitchenHealth data={data.kitchen} /></div>
+    <DeliveryWatch onOrder={onOrder} />
     <section className="owner-snapshot-grid">
       <article><div className="owner-section-title"><div><span>CUSTOMER GROWTH</span><h2>Retention pulse</h2></div><UsersRound /></div><div className="owner-mini-metrics"><span><strong>{data.growth.newCustomers}</strong> New</span><span><strong>{data.growth.returningCustomers}</strong> Returning</span><span><strong>{data.growth.reactivatedCustomers}</strong> Reactivated</span><span><strong>{data.growth.secondOrderPending}</strong> Need order #2</span></div><button type="button" onClick={onCustomer}>SEARCH CUSTOMERS <ArrowRight /></button></article>
       <article><div className="owner-section-title"><div><span>WAVE LOYALTY</span><h2>Wallet health</h2></div><WalletCards /></div><div className="owner-tier-counts"><span>M {data.loyalty.member}</span><span>S {data.loyalty.silver}</span><span>G {data.loyalty.gold}</span><span>P {data.loyalty.platinum}</span></div><p><strong>{data.loyalty.pointsIssued}</strong> issued · <strong>{data.loyalty.pointsRedeemed}</strong> redeemed · <strong>{data.loyalty.pointsPending}</strong> pending</p></article>

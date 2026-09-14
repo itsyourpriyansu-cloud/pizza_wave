@@ -44,3 +44,6 @@ export const PointsBadge = ({ points }: { points: number }) => <span className="
 export const PageHeader = ({ eyebrow, title, action }: { eyebrow?: string; title: string; action?: ReactNode }) => <header className="page-header"><div>{eyebrow && <span>{eyebrow}</span>}<h1>{title}</h1></div>{action}</header>
 export const StickyBottomAction = ({ children }: PropsWithChildren) => <div className="sticky-action">{children}</div>
 export const FloatingCartPill = ({ count, total, onClick }: { count: number; total: number; onClick: () => void }) => <motion.button className="floating-cart" onClick={onClick} initial={{ opacity: 0, y: 18, x: '-50%' }} animate={{ opacity: 1, y: 0, x: '-50%' }} whileTap={{ scale: .98 }} transition={{ duration: .2 }}><motion.span key={`${count}-${total}`} initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }}>{count} {count === 1 ? 'item' : 'items'} · ₹{total}</motion.span><strong>VIEW CART →</strong></motion.button>
+
+export { Logo, type LogoProps } from './Logo'
+

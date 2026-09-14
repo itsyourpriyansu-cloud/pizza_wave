@@ -1,6 +1,6 @@
 import { useEffect, useState, type PropsWithChildren } from 'react'
 import { env } from '../../../app/config/env'
-import { ErrorState, Skeleton } from '../../../shared/components'
+import { ErrorState, Logo, Skeleton } from '../../../shared/components'
 import { ensureScopedWorker } from '../../../services/pwa/ensureScopedWorker'
 
 let ownerBootPromise: Promise<void> | null = null
@@ -29,6 +29,6 @@ export function OwnerDataBoundary({ children }: PropsWithChildren) {
     bootOwnerRuntime().then(() => setState('ready')).catch(() => setState('error'))
   }, [])
   if (state === 'error') return <main className="boot-state"><ErrorState retry={() => location.reload()} /></main>
-  if (state === 'loading') return <main className="boot-state owner-boot"><div className="brand-lockup"><span className="logo-wave">PW</span><strong>FOUNDER CONTROL CENTER</strong></div><Skeleton className="boot-skeleton" /></main>
+  if (state === 'loading') return <main className="boot-state owner-boot"><div className="brand-lockup"><Logo variant="full" size="lg" /></div><Skeleton className="boot-skeleton" /></main>
   return children
 }
