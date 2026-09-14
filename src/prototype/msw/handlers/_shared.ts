@@ -72,8 +72,18 @@ export function now() {
 
 /** Same load count the auto-accept path uses — owner manual-accept must see the same kitchen reality. */
 export async function getActiveKitchenOrderCount(): Promise<number> {
+  const override = await getDemoKitchenLoadPercent()
+  if (override !== undefined) {
+    const store = await getStoreConfig()
+    return Math.ceil(override / 100 * store.kitchenCapacityCount)
+  }
   const orders = await db.orders.toArray()
   return orders.filter((order) => ACTIVE_KITCHEN_STATUSES.includes(order.fulfillmentStatus)).length
+}
+
+export async function getDemoKitchenLoadPercent(): Promise<number | undefined> {
+  const record = await db.config.get('demoKitchenLoadPercent')
+  return typeof record?.value === 'number' ? record.value : undefined
 }
 
 /** One-shot flag scenarios set to steer the very next payment (see scenarios/payment-failure.ts etc). */

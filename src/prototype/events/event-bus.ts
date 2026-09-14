@@ -1,4 +1,5 @@
 import { createId } from '../../domain/shared/ids'
+import { demoClock } from '../../domain/shared/clock'
 import type { AppEvent, SystemEventType } from './event-types'
 
 type Listener = (event: AppEvent) => void
@@ -14,7 +15,7 @@ class EventBus {
   private history: AppEvent[] = []
 
   emit<T>(type: SystemEventType, payload?: T, links: { orderId?: string; customerId?: string } = {}): AppEvent<T> {
-    const event: AppEvent<T> = { id: createId('EVT'), type, at: new Date().toISOString(), payload, ...links }
+    const event: AppEvent<T> = { id: createId('EVT'), type, at: demoClock.now().toISOString(), payload, ...links }
     this.history.push(event)
     this.listeners.forEach((listener) => listener(event))
     return event

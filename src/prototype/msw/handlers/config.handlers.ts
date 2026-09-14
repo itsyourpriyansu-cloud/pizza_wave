@@ -1,6 +1,7 @@
 import { http } from 'msw'
 import { API, boot, getCapabilities, getStoreConfig, json, saveStoreConfig } from './_shared'
 import type { StoreConfig } from '../../../domain/store/store.types'
+import { eventBus } from '../../events/event-bus'
 
 export const configHandlers = [
   http.get(`${API}/capabilities`, async () => { await boot(); return json(await getCapabilities()) }),
@@ -13,6 +14,7 @@ export const configHandlers = [
     const current = await getStoreConfig()
     const next = { ...current, ...patch }
     await saveStoreConfig(next)
+    eventBus.emit('CAPABILITIES_CHANGED', patch)
     return json(next)
   }),
 
@@ -23,6 +25,7 @@ export const configHandlers = [
     const current = await getStoreConfig()
     const next = { ...current, ...patch }
     await saveStoreConfig(next)
+    eventBus.emit('CAPABILITIES_CHANGED', patch)
     return json(await getCapabilities())
   }),
 ]

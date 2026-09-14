@@ -4,6 +4,7 @@ import { createId } from '../../../domain/shared/ids'
 import { DEMO_CREDENTIALS } from '../../../domain/auth/auth.types'
 import { createCustomerSession, createKdsSession, createOwnerSession } from '../../../domain/auth/session.policy'
 import { demoCustomerAuthProvider } from '../../../services/auth/DemoCustomerAuthProvider'
+import { setKdsHeartbeat } from '../../services/kds-heartbeat'
 import { API, boot, error, json, now } from './_shared'
 
 export const authHandlers = [
@@ -47,7 +48,9 @@ export const authHandlers = [
     const { pin } = await request.json() as { pin: string }
     if (pin !== DEMO_CREDENTIALS.kds.pin) return error('Invalid chef PIN', 401)
     const session = createKdsSession('Kitchen Tablet #1', now())
+    await db.sessions.where('realm').equals('KDS').delete()
     await db.sessions.put({ id: createId('SESSION'), realm: 'KDS', payload: session })
+    await setKdsHeartbeat(true, now())
     return json(session)
   }),
 ]

@@ -12,6 +12,7 @@ import { CustomerAsset } from '../components/CustomerAsset'
 import type { LegacyCart } from '../../../domain/cart/cart.types'
 
 function modifierNames(item: LegacyCart['items'][number]) {
+  if (item.customizationSummary?.length) return item.customizationSummary.map((selection) => selection.optionName)
   const product = item.product
   return item.modifiers.flatMap((selection) => {
     const group = product.modifierGroups?.find((candidate) => candidate.id === selection.groupId)
@@ -52,7 +53,8 @@ export default function CartPage() {
       <section className="cart-items" aria-label="Cart items">{cart.data.items.map((item) => {
         const asset = getProductAsset(item.product.id, item.product.image)
         const selectedNames = modifierNames(item)
-        return <motion.article className="cart-item" layout key={item.id}><Link className="cart-item-art" to={`/app/product/${item.productId}`}><CustomerAsset src={asset.src} alt={item.product.name} fallbackLabel={asset.fallbackLabel} /></Link><div className="cart-item-copy"><div><span className={`veg-status ${item.product.veg ? 'veg' : 'non-veg'}`}><i />{item.product.veg ? 'VEG' : 'NON-VEG'}</span><h2>{item.product.name}</h2>{selectedNames.length > 0 && <p>{selectedNames.join(' · ')}</p>}</div><div className="cart-item-actions"><strong>₹{item.unitPriceSnapshot * item.quantity}</strong><div>{item.product.modifierGroups?.length ? <Link to={`/app/build/${item.productId}?edit=${item.id}`}><Pencil size={15} /> EDIT</Link> : <span />}<button type="button" onClick={() => remove.mutate(item.id)} aria-label={`Remove ${item.product.name}`}><Trash2 size={17} /></button></div><QuantityStepper value={item.quantity} disabled={update.isPending} onChange={(quantity) => update.mutate({ id: item.id, quantity })} /></div></div></motion.article>
+        const customizable = Boolean(item.product.modifierGroups?.length)
+        return <motion.article className="cart-item" layout key={item.id}><Link className="cart-item-art" to={`/app/product/${item.productId}`}><CustomerAsset src={asset.src} alt={item.product.name} fallbackLabel={asset.fallbackLabel} /></Link><div className="cart-item-copy"><div><span className={`veg-status ${item.product.veg ? 'veg' : 'non-veg'}`}><i />{item.product.veg ? 'VEG' : 'NON-VEG'}</span><h2>{item.product.name}</h2>{selectedNames.length > 0 && <p>{selectedNames.join(' · ')}</p>}{item.specialInstructions && <p className="cart-item-note">“{item.specialInstructions}”</p>}</div><div className="cart-item-actions"><strong>₹{item.lineTotal ?? item.unitPriceSnapshot * item.quantity}</strong><div>{customizable ? <Link to={`/app/build/${item.productId}?edit=${item.id}`}><Pencil size={15} /> EDIT</Link> : <span />}<button type="button" onClick={() => remove.mutate(item.id)} aria-label={`Remove ${item.product.name}`}><Trash2 size={17} /></button></div><QuantityStepper value={item.quantity} disabled={update.isPending} onChange={(quantity) => update.mutate({ id: item.id, quantity })} onIncrement={customizable ? () => navigate(`/app/build/${item.productId}?copy=${item.id}`) : undefined} /></div></div></motion.article>
       })}</section>
 
       {threshold && <section className={`threshold-card ${threshold.remaining === 0 ? 'complete' : ''}`}><div><Gift /><span>{threshold.remaining > 0 ? `${threshold.label} · ₹${threshold.remaining} to go` : 'Feast goal reached'}</span>{threshold.remaining === 0 && <Check />}</div><div className="threshold-track"><i style={{ width: `${thresholdProgress}%` }} /></div></section>}

@@ -14,9 +14,11 @@ import { supportHandlers } from './support.handlers'
 import { refundHandlers } from './refund.handlers'
 import { authHandlers } from './auth.handlers'
 import { demoHandlers } from './demo.handlers'
+import { customerHandlers } from './customer.handlers'
+import { retentionHandlers } from './retention.handlers'
 
 export const handlers = [
   ...catalogHandlers, ...configHandlers, ...availabilityHandlers, ...cartHandlers, ...checkoutHandlers,
   ...paymentHandlers, ...ordersHandlers, ...ownerHandlers, ...kdsHandlers, ...loyaltyHandlers, ...crmHandlers,
-  ...chatHandlers, ...supportHandlers, ...refundHandlers, ...authHandlers, ...demoHandlers,
+  ...chatHandlers, ...supportHandlers, ...refundHandlers, ...authHandlers, ...customerHandlers, ...retentionHandlers, ...demoHandlers,
 ]

@@ -52,7 +52,7 @@ const payment: PaymentAttempt = {
   confirmedAt: '2026-09-08T00:02:00.000Z',
 }
 
-describe('Stage 4 payment-to-order boundary', () => {
+describe('payment-to-order boundary', () => {
   beforeEach(async () => {
     await resetDemoDatabase()
     await db.cartItems.add({
@@ -63,19 +63,19 @@ describe('Stage 4 payment-to-order boundary', () => {
     await db.payments.add(payment)
   })
 
-  it('creates no operational state beyond awaiting acceptance', async () => {
+  it('automatically accepts and schedules a safe confirmed payment', async () => {
     const order = await confirmPaymentAndCreateOrder(payment)
 
     expect(order.paymentStatus).toBe('CONFIRMED')
-    expect(order.acceptanceStatus).toBe('AWAITING_ACCEPTANCE')
-    expect(order.fulfillmentStatus).toBe('NOT_STARTED')
-    expect(order.acceptedAt).toBeUndefined()
-    expect(order.prepStartAt).toBeUndefined()
+    expect(order.acceptanceStatus).toBe('ACCEPTED')
+    expect(order.fulfillmentStatus).toBe('SCHEDULED')
+    expect(order.acceptedAt).toBeDefined()
+    expect(order.prepStartAt).toBeDefined()
     expect((await db.orderIntents.get(intent.id))?.status).toBe('CONSUMED')
     expect(await db.cartItems.where('cartId').equals(DEMO_CART_ID).count()).toBe(0)
 
     const eventTypes = (await db.orderEvents.where('orderId').equals(order.id).toArray()).map((event) => event.type)
-    expect(eventTypes).toEqual(['PAYMENT_CONFIRMED'])
+    expect(eventTypes).toEqual(['PAYMENT_CONFIRMED', 'ORDER_ACCEPTED', 'FULFILLMENT_SCHEDULED'])
   })
 
   it('is idempotent for repeated authoritative payment confirmation', async () => {
@@ -85,7 +85,7 @@ describe('Stage 4 payment-to-order boundary', () => {
     expect(second.id).toBe(first.id)
     expect(await db.orders.where('orderIntentId').equals(intent.id).count()).toBe(1)
     expect(await db.loyaltyTransactions.where('orderId').equals(first.id).count()).toBe(1)
-    expect(await db.orderEvents.where('orderId').equals(first.id).count()).toBe(1)
+    expect(await db.orderEvents.where('orderId').equals(first.id).count()).toBe(3)
   })
 
   it('refuses to create an order from a frontend-shaped pending attempt', async () => {

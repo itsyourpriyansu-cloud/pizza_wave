@@ -32,10 +32,12 @@ export function setOwnerAvailability(entityId: string, entityType: AvailabilityR
   }
 }
 
-export type ChefUnavailableDuration = 30 | 60 | 'REST_OF_DAY'
+export type ChefUnavailableDuration = 30 | 60 | 'REST_OF_DAY' | 'UNTIL_ENABLED'
 
 export function setChefTemporaryAvailability(entityId: string, entityType: AvailabilityRecord['entityType'], duration: ChefUnavailableDuration, now: Date, reason?: string): AvailabilityRecord {
-  const expiresAt = duration === 'REST_OF_DAY'
+  const expiresAt = duration === 'UNTIL_ENABLED'
+    ? undefined
+    : duration === 'REST_OF_DAY'
     ? new Date(new Date(now).setHours(23, 59, 59, 999)).toISOString()
     : new Date(now.getTime() + duration * 60_000).toISOString()
   return { id: `AVAIL-CHEF-${entityId}-${now.getTime()}`, entityType, entityId, source: 'CHEF', status: 'CHEF_TEMP_UNAVAILABLE', reason, startsAt: now.toISOString(), expiresAt }

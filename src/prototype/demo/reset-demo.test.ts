@@ -24,9 +24,9 @@ describe('resetDemoDatabase', () => {
     expect(await db.cartItems.count()).toBe(0)
   })
 
-  it('seeds two historical completed orders for loyalty/CRM continuity', async () => {
+  it('seeds historical orders, active tracking and the founder paid-review story', async () => {
     const orders = await db.orders.where('customerId').equals('CUST001').toArray()
-    expect(orders).toHaveLength(2)
+    expect(orders).toHaveLength(4)
     expect(orders.every((order) => order.paymentStatus === 'CONFIRMED')).toBe(true)
   })
 })

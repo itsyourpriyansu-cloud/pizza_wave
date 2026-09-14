@@ -25,4 +25,9 @@ export const loyaltySummarySchema = z.object({
     preferredCategory: z.string(), tags: z.array(z.string()),
   }),
   nextTier: loyaltyTierIdSchema.optional(), ordersNeeded: z.number().int().nonnegative(), spendNeeded: z.number().nonnegative(),
+  progress: z.object({
+    currentOrders: z.number().int().nonnegative(), targetOrders: z.number().int().nonnegative(),
+    currentSpend: z.number().nonnegative(), targetSpend: z.number().nonnegative(), earnRatePercent: z.number().nonnegative(),
+    ordersPercent: z.number().min(0).max(100), spendPercent: z.number().min(0).max(100), message: z.string(),
+  }),
 })

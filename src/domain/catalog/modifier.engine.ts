@@ -15,6 +15,18 @@ export function availableOptions(group: ModifierGroup, selections: ModifierSelec
 
 export function validateModifierSelections(groups: ModifierGroup[], selections: ModifierSelection[]): ModifierValidationIssue[] {
   const issues: ModifierValidationIssue[] = []
+  const knownGroups = new Map(groups.map((group) => [group.id, group]))
+  const groupCounts = new Map<string, number>()
+  for (const selection of selections) {
+    groupCounts.set(selection.groupId, (groupCounts.get(selection.groupId) ?? 0) + 1)
+    const group = knownGroups.get(selection.groupId)
+    if (!group) {
+      issues.push({ groupId: selection.groupId, message: 'This customization is not available for this item.' })
+      continue
+    }
+    if (new Set(selection.optionIds).size !== selection.optionIds.length) issues.push({ groupId: group.id, message: `Choose each ${group.name.toLowerCase()} option only once.` })
+  }
+  for (const [groupId, count] of groupCounts) if (count > 1) issues.push({ groupId, message: 'Each customization group can be selected only once.' })
   for (const group of groups) {
     const selected = selectedFor(selections, group.id)
     const availableIds = new Set(availableOptions(group, selections).map((option) => option.id))
@@ -26,8 +38,10 @@ export function validateModifierSelections(groups: ModifierGroup[], selections: 
 }
 
 export function configuredUnitPrice(basePrice: number, groups: ModifierGroup[], selections: ModifierSelection[]): number {
-  const selectedIds = new Set(selections.flatMap((selection) => selection.optionIds))
-  return basePrice + groups.flatMap((group) => group.options).filter((option) => selectedIds.has(option.id)).reduce((sum, option) => sum + option.priceDelta, 0)
+  return basePrice + groups.reduce((total, group) => {
+    const selectedIds = new Set(selectedFor(selections, group.id))
+    return total + group.options.filter((option) => selectedIds.has(option.id)).reduce((sum, option) => sum + option.priceDelta, 0)
+  }, 0)
 }
 
 /** Used by compact fast-add only. The full builder deliberately begins with empty required choices. */

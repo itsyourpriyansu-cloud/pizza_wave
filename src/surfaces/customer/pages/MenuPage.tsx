@@ -1,6 +1,6 @@
 import { Search } from 'lucide-react'
 import { useMemo, useState } from 'react'
-import { Link, useSearchParams } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useMenu } from '../../../features/catalog/hooks/useCatalog'
 import { filterMenuProducts } from '../../../domain/catalog/filterMenuProducts'
 import { useCart, useCartActions } from '../../../features/cart/hooks/useCart'
@@ -9,6 +9,7 @@ import { Chip, EmptyState, ErrorState, PageHeader, Skeleton } from '../../../sha
 
 export default function MenuPage() {
   const [params] = useSearchParams()
+  const navigate = useNavigate()
   const menu = useMenu()
   const cart = useCart()
   const { add, update } = useCartActions()
@@ -19,8 +20,10 @@ export default function MenuPage() {
   if (menu.isError) return <ErrorState retry={() => void menu.refetch()} />
 
   const action = (productId: string) => {
-    const item = cart.data?.items.find((row) => row.productId === productId)
-    return { cartItem: item, onAdd: () => add.mutate(productId), onQuantity: (quantity: number) => { if (item) update.mutate({ id: item.id, quantity }) } }
+    const rows = cart.data?.items.filter((row) => row.productId === productId) ?? []
+    const item = rows[0]
+    const product = menu.data?.products.find((row) => row.id === productId)
+    return { cartItem: item, cartCount: rows.reduce((total, row) => total + row.quantity, 0), onAdd: () => product?.modifierGroups?.length ? navigate(`/app/build/${productId}`) : add.mutate(productId), onQuantity: (quantity: number) => { if (item) update.mutate({ id: item.id, quantity }) } }
   }
   const chooseCategory = (value: string) => { setCategory(value); setCollection('') }
   const chooseCollection = (value: string) => { setCollection(collection === value ? '' : value); setCategory('all') }

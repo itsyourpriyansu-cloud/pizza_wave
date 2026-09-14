@@ -27,10 +27,11 @@ describe('getKitchenQueue', () => {
 
 describe('overridePrepTime', () => {
   it('recomputes effective prep time and target-ready time from the override', () => {
-    const result = overridePrepTime({ order: order(), requestedMinutes: 28, reason: 'Extra busy', chefId: 'Kitchen Tablet #1', now: new Date('2026-09-08T18:10:00.000Z') }, thresholds)
+    const result = overridePrepTime({ order: order({ targetReadyAt: '2026-09-08T18:18:00.000Z', promisedAt: '2026-09-08T18:36:00.000Z' }), requestedMinutes: 28, reason: 'Extra busy', chefId: 'Kitchen Tablet #1', now: new Date('2026-09-08T18:10:00.000Z') }, thresholds)
     expect(result.order.chefOverrideMinutes).toBe(28)
     expect(result.order.effectivePrepMinutes).toBe(28)
     expect(result.order.targetReadyAt).toBe('2026-09-08T18:28:00.000Z')
+    expect(result.order.promisedAt).toBe('2026-09-08T18:46:00.000Z')
     expect(result.delayMinutes).toBe(10)
   })
 

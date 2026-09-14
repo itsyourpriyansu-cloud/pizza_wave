@@ -9,11 +9,21 @@
   "scripts": {
     "dev": "vite",
     "dev:demo": "vite --mode demo",
+    "demo": "vite --mode pitch",
+    "pitch": "vite --mode pitch",
+    "build:pitch": "npm run typecheck && vite build --mode pitch",
+    "preview:pitch": "vite preview --port 4174",
     "build": "npm run typecheck && vite build",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "lint": "oxlint src"
+    "lint": "oxlint src",
+    "backend:install": "py -3.12 -m venv backend/.venv && backend\\.venv\\Scripts\\python -m pip install -e \"backend[dev]\"",
+    "backend:dev": "backend\\.venv\\Scripts\\python -m uvicorn app.main:app --reload --reload-dir backend --app-dir backend --port 8000",
+    "backend:test": "backend\\.venv\\Scripts\\python -m pytest backend/tests",
+    "backend:lint": "backend\\.venv\\Scripts\\python -m ruff check backend",
+    "backend:typecheck": "backend\\.venv\\Scripts\\python -m mypy backend/app",
+    "check": "npm run lint && npm run typecheck && npm run test && npm run backend:lint && npm run backend:typecheck && npm run backend:test"
   },
   "dependencies": {
     "@fontsource/phudu": "5.3.0",

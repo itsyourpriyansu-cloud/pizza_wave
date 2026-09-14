@@ -1,6 +1,6 @@
 import { ArrowLeft, Search, Sparkles, X } from 'lucide-react'
 import { FormEvent, useEffect, useState } from 'react'
-import { Link, useSearchParams } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useProductSearch } from '../../../features/catalog/hooks/useCatalog'
 import { useCart, useCartActions } from '../../../features/cart/hooks/useCart'
 import { ProductCard } from '../../../features/product/components/ProductCard'
@@ -11,6 +11,7 @@ const recentKey = 'pizza-wave:recent-searches'
 
 export default function SearchPage() {
   const [params, setParams] = useSearchParams()
+  const navigate = useNavigate()
   const [query, setQuery] = useState(params.get('q') ?? '')
   const [debouncedQuery, setDebouncedQuery] = useState(query)
   const [recent, setRecent] = useState<string[]>(() => {
@@ -39,8 +40,10 @@ export default function SearchPage() {
   const searchFor = (value: string) => { setQuery(value); setDebouncedQuery(value); saveRecent(value) }
   const submit = (event: FormEvent) => { event.preventDefault(); saveRecent(query); setDebouncedQuery(query.trim()) }
   const action = (productId: string) => {
-    const item = cart.data?.items.find((row) => row.productId === productId)
-    return { cartItem: item, onAdd: () => add.mutate(productId), onQuantity: (quantity: number) => { if (item) update.mutate({ id: item.id, quantity }) } }
+    const rows = cart.data?.items.filter((row) => row.productId === productId) ?? []
+    const item = rows[0]
+    const product = results.data?.find((row) => row.id === productId)
+    return { cartItem: item, cartCount: rows.reduce((total, row) => total + row.quantity, 0), onAdd: () => product?.modifierGroups?.length ? navigate(`/app/build/${productId}`) : add.mutate(productId), onQuantity: (quantity: number) => { if (item) update.mutate({ id: item.id, quantity }) } }
   }
 
   return <div className="search-page">

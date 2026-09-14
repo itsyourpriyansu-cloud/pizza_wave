@@ -82,6 +82,11 @@
 .modifier-error { margin: .65rem 0 0; color: var(--wave-red); font-size: .78rem; font-weight: 600; }
 .builder-step-status { min-height: 46px; display: flex; align-items: center; gap: .5rem; border-radius: 15px; padding: .6rem .75rem; background: rgba(139,223,250,.35); font-size: .72rem; font-weight: 600; }
 .builder-step-status svg:last-child { margin-left: auto; }
+.builder-instructions { display: grid; gap: .45rem; border-radius: 18px; padding: .85rem; background: rgba(253,204,59,.18); }
+.builder-instructions > span { font-size: .62rem; font-weight: 700; letter-spacing: .08em; }
+.builder-instructions textarea { width: 100%; resize: vertical; border: 1px solid var(--line); border-radius: 13px; padding: .75rem; color: var(--text); background: var(--white); font: inherit; }
+.builder-instructions small, .cart-item-note { color: var(--muted); font-size: .68rem; }
+.builder-page .sticky-action > .stepper { flex: 0 0 auto; }
 .build-recap { display: none; }
 .builder-navigation { display: grid; grid-template-columns: 1fr 1.35fr; gap: .65rem; padding-top: .5rem; }
 .builder-navigation .button { width: 100%; }

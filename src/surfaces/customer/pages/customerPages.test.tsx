@@ -34,6 +34,7 @@ const mocks = vi.hoisted(() => ({
   search: {} as Record<string, unknown>,
   detail: {} as Record<string, unknown>,
   quote: {} as Record<string, unknown>,
+  retention: {} as Record<string, unknown>,
 }))
 
 vi.mock('../../../features/catalog/hooks/useCatalog', () => ({ useMenu: () => mocks.menu, useRecommendations: () => mocks.recommendations, useProductSearch: () => mocks.search, useProduct: () => mocks.detail }))
@@ -46,6 +47,7 @@ vi.mock('../../../features/cart/hooks/useCart', () => ({
 vi.mock('../../../features/loyalty/hooks/useLoyalty', () => ({ useLoyalty: () => mocks.loyalty }))
 vi.mock('../../../features/orders/hooks/useOrders', () => ({ useOrders: () => mocks.orders }))
 vi.mock('../../../app/providers/DemoProvider', () => ({ useDemo: () => ({ customerLoggedIn: mocks.customerLoggedIn }) }))
+vi.mock('../../../features/retention/hooks/useRetention', () => ({ useRetentionSummary: () => mocks.retention }))
 
 const query = <T,>(data: T, overrides: Record<string, unknown> = {}) => ({ data, isPending: false, isError: false, refetch: vi.fn(), ...overrides })
 const renderPage = (page: ReactNode, route = '/app/') => render(<MemoryRouter initialEntries={[route]}>{page}</MemoryRouter>)
@@ -61,6 +63,7 @@ beforeEach(() => {
   mocks.search = query([])
   mocks.detail = query({ product: products[0], pairings: products.slice(7, 9), pointsPreview: 4 })
   mocks.quote = query({ itemCount: 0, subtotal: 0, discount: 0, pointsRequested: 0, pointsUsable: 0, pointsValue: 0, pointsRedeemed: 0, deliveryFee: 0, eligibleSpend: 0, pointsToEarn: 0, total: 0, availabilityIssues: [], warnings: [], valid: false })
+  mocks.retention = query({ favouriteCategory: 'Pizza', usualProductIds: ['PIZZA-PANEER-001', 'COFFEE-001'], recommendedProductIds: ['PIZZA-PANEER-001', 'PIZZA-VEG-001'], savedOrderId: 'SAVED-USUAL', savedOrderName: 'My Usual', secondOrderLoop: null, method: 'RULE_BASED' })
   localStorage.clear()
 })
 afterEach(cleanup)
@@ -101,7 +104,7 @@ describe('Home page query states', () => {
     expect(screen.getByRole('heading', { name: 'Hey, Priyanshu.' })).toBeInTheDocument()
     expect(screen.getByText('Gold Wave · 182 points')).toBeInTheDocument()
     expect(screen.getByText(/REORDER PREVIEW/)).toBeInTheDocument()
-    expect(screen.getByRole('heading', { name: 'Saturday Night' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'My Usual' })).toBeInTheDocument()
   })
 })
 

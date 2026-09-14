@@ -41,14 +41,14 @@ describe('Stage 4 customer API flow', () => {
     expect(result.order).toBeUndefined()
   })
 
-  it('creates exactly an awaiting-acceptance order only after backend success', async () => {
+  it('creates exactly one automatically accepted order after safe backend success', async () => {
     const { intent, payment } = await preparePayment()
     expect(await db.orders.where('orderIntentId').equals(intent.id).count()).toBe(0)
 
     const result = await api.payment.confirmPaymentDemo(payment.id)
     expect(result.payment.status).toBe('CONFIRMED')
-    expect(result.order?.acceptanceStatus).toBe('AWAITING_ACCEPTANCE')
-    expect(result.order?.fulfillmentStatus).toBe('NOT_STARTED')
+    expect(result.order?.acceptanceStatus).toBe('ACCEPTED')
+    expect(result.order?.fulfillmentStatus).toBe('SCHEDULED')
     expect(await db.cartItems.count()).toBe(0)
   })
 

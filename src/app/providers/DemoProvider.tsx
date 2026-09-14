@@ -1,9 +1,10 @@
-import { createContext, useContext, useMemo, useState, type PropsWithChildren } from 'react'
+import { createContext, useCallback, useContext, useEffect, useMemo, useState, type PropsWithChildren } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { apiClient } from '../../services/api/client'
 import { endpoints } from '../../services/api/endpoints'
 import type { CustomerSession } from '../../domain/auth/auth.types'
 import { useAppStore } from '../../stores/app.store'
+import { env } from '../config/env'
 
 const CUSTOMER_SESSION_KEY = 'pizza-wave:customer-session'
 const readCustomerSession = (): CustomerSession | undefined => {
@@ -40,7 +41,7 @@ export function DemoProvider({ children }: PropsWithChildren) {
     if (!value) { localStorage.removeItem(CUSTOMER_SESSION_KEY); setCustomerSession(undefined) }
     setLoggedIn(value)
   }
-  const reset = async () => {
+  const reset = useCallback(async () => {
     await apiClient.post(endpoints.demoReset)
     localStorage.removeItem('pizza-wave:app')
     localStorage.removeItem(CUSTOMER_SESSION_KEY)
@@ -48,7 +49,18 @@ export function DemoProvider({ children }: PropsWithChildren) {
     useAppStore.setState({ fulfillmentMode: 'DELIVERY', checkoutPointsRequested: 0 })
     setLoggedIn(true)
     await queryClient.invalidateQueries()
-  }
+  }, [queryClient])
+  useEffect(() => {
+    if (!env.VITE_PITCH_MODE) return
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.ctrlKey && event.altKey && event.shiftKey && event.code === 'KeyR') {
+        event.preventDefault()
+        void reset()
+      }
+    }
+    document.addEventListener('keydown', onKeyDown)
+    return () => document.removeEventListener('keydown', onKeyDown)
+  }, [reset])
   const value = useMemo(() => ({ customerLoggedIn, customerSession, authenticateCustomer, setCustomerLoggedIn, reset }), [customerLoggedIn, customerSession])
   return <DemoContext.Provider value={value}>{children}</DemoContext.Provider>
 }

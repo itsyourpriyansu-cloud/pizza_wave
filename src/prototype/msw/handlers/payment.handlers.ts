@@ -5,6 +5,7 @@ import { confirmPayment, failPayment, reconcilePayment } from '../../../domain/p
 import { demoPhonePeProvider } from '../../../services/payment/DemoPhonePeProvider'
 import { API, boot, error, getAndClearNextPaymentOutcome, json, now } from './_shared'
 import { confirmPaymentAndCreateOrder, generateMerchantOrderId } from './_orderProcessing'
+import { eventBus } from '../../events/event-bus'
 
 async function paymentResult(paymentId: string) {
   const payment = await db.payments.get(paymentId)
@@ -30,6 +31,7 @@ export const paymentHandlers = [
       amount: intent.quoteSnapshot.total, status: 'PENDING' as const, createdAt: now().toISOString(),
     }
     await db.payments.add(payment)
+    eventBus.emit('PAYMENT_STATUS_CHANGED', { paymentId: payment.id, status: payment.status })
     return json({ payment, redirectUrl: providerResult.redirectUrl, demoOnly: true }, 201)
   }),
 
@@ -56,6 +58,7 @@ export const paymentHandlers = [
     const { attempt: confirmed } = confirmPayment(attempt, providerStatus.providerTransactionId ?? createId('PHONEPE-TXN'), now())
     await db.payments.put(confirmed)
     await confirmPaymentAndCreateOrder(confirmed)
+    eventBus.emit('PAYMENT_STATUS_CHANGED', { paymentId, status: 'CONFIRMED' })
     return json(await paymentResult(paymentId))
   }),
 
@@ -68,6 +71,7 @@ export const paymentHandlers = [
     if (attempt.status === 'CONFIRMED') return error('Confirmed payment cannot be failed', 409)
     demoPhonePeProvider.failDemoPayment(attempt.merchantOrderId, attempt.amount)
     await db.payments.put(failPayment(attempt, 'Demo payment marked as failed'))
+    eventBus.emit('PAYMENT_STATUS_CHANGED', { paymentId, status: 'FAILED' })
     return json(await paymentResult(paymentId))
   }),
 
@@ -79,6 +83,7 @@ export const paymentHandlers = [
     if (attempt.status === 'CONFIRMED' || attempt.status === 'FAILED') return error('Payment is already resolved', 409)
     demoPhonePeProvider.keepDemoPaymentPending(attempt.merchantOrderId, attempt.amount)
     await db.payments.put(reconcilePayment(attempt))
+    eventBus.emit('PAYMENT_STATUS_CHANGED', { paymentId, status: 'RECONCILING' })
     return json(await paymentResult(paymentId))
   }),
 ]

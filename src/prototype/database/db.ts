@@ -12,6 +12,7 @@ import type { Refund } from '../../domain/refunds/refund.types'
 import type { AttentionItem } from '../../domain/attention/attention.types'
 import type { AnySession } from '../../domain/auth/auth.types'
 import type { CheckoutSession } from '../../domain/checkout/checkout.types'
+import type { CampaignEvent, Referral } from '../../domain/retention/retention.types'
 
 export interface StoredCartItem extends CartItem { quantity: number }
 /** Generic key/value store: 'storeConfig' -> StoreConfig, 'capabilities' -> Capabilities, 'customerLoggedIn' -> boolean, 'orderSequence' -> number. */
@@ -40,6 +41,8 @@ export class PizzaWaveDatabase extends Dexie {
   attentionItems!: EntityTable<AttentionItem, 'id'>
   sessions!: EntityTable<SessionRecord, 'id'>
   auditLogs!: EntityTable<AuditLogRecord, 'id'>
+  campaignEvents!: EntityTable<CampaignEvent, 'id'>
+  referrals!: EntityTable<Referral, 'id'>
   config!: EntityTable<ConfigRecord, 'key'>
 
   constructor() {
@@ -68,6 +71,14 @@ export class PizzaWaveDatabase extends Dexie {
     this.version(2).stores({ checkoutSessions: 'id, customerId, cartId, status, expiresAt' })
     // Payment status lookup is part of the Stage 4 customer return flow.
     this.version(3).stores({ orders: 'id, customerId, orderIntentId, paymentId, paymentStatus, acceptanceStatus, fulfillmentStatus, createdAt' })
+    // Stable Amani-style cart configuration identity supports safe merge/edit behavior.
+    this.version(4).stores({ cartItems: 'id, cartId, productId, configurationKey, [cartId+productId]' })
+    // Stage 9 adds compact retention event/referral ledgers. Customer messages remain in
+    // the existing conversation table regardless of delivery channel.
+    this.version(5).stores({
+      campaignEvents: 'id, opportunityId, customerId, channel, status, createdAt',
+      referrals: 'id, referrerCustomerId, status, updatedAt',
+    })
   }
 }
 

@@ -26,7 +26,7 @@ export function CustomerLayout() {
   const { data: cart } = useCart(); const { data: quote } = useCartQuote(mode); const { data: loyalty } = useLoyalty(); const { customerLoggedIn } = useDemo(); const { data: capabilities } = useCapabilities()
   const [fulfillmentOpen, setFulfillmentOpen] = useState(false)
   const commerceFlow = /^\/app\/(product|build|cart)(\/|$)/.test(location.pathname)
-  const fullFlow = /^\/app\/(auth|checkout|payment)(\/|$)/.test(location.pathname)
+  const fullFlow = /^\/app\/(auth|checkout|payment)(\/|$)/.test(location.pathname) || /^\/app\/orders\/[^/]+$/.test(location.pathname)
   const pillVisible = Boolean(quote && quote.itemCount > 0 && !commerceFlow && !fullFlow)
   useEffect(() => { window.scrollTo({ top: 0, behavior: 'instant' }) }, [location.pathname])
   return <div className="customer-shell">

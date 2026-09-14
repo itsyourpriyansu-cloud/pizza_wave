@@ -7,8 +7,8 @@ export const PrimaryButton = ({ className = '', ...props }: ButtonProps) => <but
 export const SecondaryButton = ({ className = '', ...props }: ButtonProps) => <button className={`button button-secondary ${className}`} {...props} />
 export const IconButton = ({ className = '', 'aria-label': label, ...props }: ButtonProps) => <button className={`icon-button ${className}`} aria-label={label} {...props} />
 
-export function QuantityStepper({ value, onChange, disabled }: { value: number; onChange: (value: number) => void; disabled?: boolean }) {
-  return <div className="stepper" aria-label="Quantity"><IconButton aria-label="Decrease quantity" onClick={() => onChange(value - 1)} disabled={disabled}><Minus size={16} /></IconButton><output aria-live="polite">{value}</output><IconButton aria-label="Increase quantity" onClick={() => onChange(value + 1)} disabled={disabled}><Plus size={16} /></IconButton></div>
+export function QuantityStepper({ value, onChange, onIncrement, onDecrement, disabled }: { value: number; onChange: (value: number) => void; onIncrement?: () => void; onDecrement?: () => void; disabled?: boolean }) {
+  return <div className="stepper" aria-label="Quantity"><IconButton aria-label="Decrease quantity" onClick={() => onDecrement ? onDecrement() : onChange(value - 1)} disabled={disabled}><Minus size={16} /></IconButton><output aria-live="polite">{value}</output><IconButton aria-label="Increase quantity" onClick={() => onIncrement ? onIncrement() : onChange(value + 1)} disabled={disabled}><Plus size={16} /></IconButton></div>
 }
 
 export function SegmentedControl<T extends string>({ value, options, onChange, label }: { value: T; options: Array<{ value: T; label: string; disabled?: boolean }>; onChange: (value: T) => void; label: string }) {

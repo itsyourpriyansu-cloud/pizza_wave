@@ -9,6 +9,7 @@ import { loadPaymentPending } from './payment-pending'
 import { loadKdsOffline } from './kds-offline'
 import type { ScenarioSummary } from './scenario.types'
 import { db } from '../database/db'
+import { eventBus } from '../events/event-bus'
 
 const registry = {
   happyDelivery: loadHappyDelivery,
@@ -28,6 +29,7 @@ export const scenarioIds = Object.keys(registry) as ScenarioId[]
 export async function loadScenario(id: ScenarioId): Promise<ScenarioSummary> {
   const summary = await registry[id]()
   await db.config.put({ key: 'activeScenario', value: id })
+  eventBus.emit('DEMO_SCENARIO_LOADED', summary)
   return summary
 }
 

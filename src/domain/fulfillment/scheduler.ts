@@ -1,5 +1,16 @@
 import type { ScheduleInput, ScheduleOutput } from './fulfillment.types'
 
+function pickupStart(slot: string | undefined, now: Date): Date | undefined {
+  const match = slot?.match(/(\d{1,2}):(\d{2})\s*(AM|PM)/i)
+  if (!match) return undefined
+  let hour = Number(match[1]) % 12
+  if (match[3].toUpperCase() === 'PM') hour += 12
+  const result = new Date(now)
+  result.setHours(hour, Number(match[2]), 0, 0)
+  if (result <= now) result.setDate(result.getDate() + 1)
+  return result
+}
+
 /**
  * Pure and deterministic given its inputs (no Date.now() reads) so it stays unit-testable
  * and reusable by both the acceptance engine and KDS "what if" previews.
@@ -28,8 +39,13 @@ export function scheduleOrder(input: ScheduleInput): ScheduleOutput {
   }
 
   const systemPrepMinutes = basePrepMinutes + complexityMinutes + loadPadding + input.packingMinutes
-  const prepStartAt = input.now
-  const targetReadyAt = new Date(prepStartAt.getTime() + systemPrepMinutes * 60_000)
+  const scheduledPickupAt = input.fulfillmentType === 'PICKUP' ? pickupStart(input.pickupSlot, input.now) : undefined
+  const targetReadyAt = scheduledPickupAt
+    ? new Date(scheduledPickupAt.getTime() - input.pickupBufferMinutes * 60_000)
+    : new Date(input.now.getTime() + systemPrepMinutes * 60_000)
+  const prepStartAt = scheduledPickupAt
+    ? new Date(targetReadyAt.getTime() - systemPrepMinutes * 60_000)
+    : input.now
 
   let dispatchTargetAt: Date | undefined
   let promiseWindowStart: Date
@@ -40,7 +56,7 @@ export function scheduleOrder(input: ScheduleInput): ScheduleOutput {
     promiseWindowStart = new Date(dispatchTargetAt.getTime())
     promiseWindowEnd = new Date(dispatchTargetAt.getTime() + 15 * 60_000)
   } else {
-    promiseWindowStart = new Date(targetReadyAt.getTime() + input.pickupBufferMinutes * 60_000)
+    promiseWindowStart = scheduledPickupAt ?? new Date(targetReadyAt.getTime() + input.pickupBufferMinutes * 60_000)
     promiseWindowEnd = new Date(promiseWindowStart.getTime() + 10 * 60_000)
   }
 

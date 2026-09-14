@@ -10,6 +10,7 @@ const keywordMap: Array<{ intent: ChatIntent; keywords: string[] }> = [
   { intent: 'REFUND_STATUS', keywords: ['refund status', 'where is my refund'] },
   { intent: 'LOYALTY_HELP', keywords: ['points', 'wave rewards', 'loyalty', 'tier'] },
   { intent: 'OFFER_HELP', keywords: ['offer', 'coupon', 'discount'] },
+  { intent: 'PRODUCT_QUESTION', keywords: ['available', 'availability', 'out of stock'] },
   { intent: 'VIEW_MENU', keywords: ['menu', 'what do you have'] },
   { intent: 'CHECKOUT', keywords: ['checkout', 'pay now'] },
   { intent: 'VIEW_CART', keywords: ['my cart', 'view cart'] },

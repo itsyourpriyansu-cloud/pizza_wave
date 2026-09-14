@@ -21,7 +21,10 @@ export const orderIntentSchema = z.object({
   createdAt: z.string(),
 })
 
-export const orderItemSchema = z.object({ productId: z.string(), name: z.string(), quantity: z.number().int().positive(), unitPrice: z.number().nonnegative() })
+export const orderItemSchema = z.object({
+  productId: z.string(), name: z.string(), quantity: z.number().int().positive(), unitPrice: z.number().nonnegative(),
+  modifiers: z.array(z.object({ groupId: z.string(), optionIds: z.array(z.string()) })).optional(),
+})
 
 export const orderSchema = z.object({
   id: z.string(), publicOrderNumber: z.string(), customerId: z.string(), source: orderSourceSchema,
@@ -36,9 +39,13 @@ export const orderSchema = z.object({
   overrideReason: z.string().optional(),
   overrideAt: z.string().optional(),
   overrideBy: z.string().optional(),
+  recommendedStartAt: z.string().optional(),
   prepStartAt: z.string().optional(),
+  actualPrepStartedAt: z.string().optional(),
   targetReadyAt: z.string().optional(),
+  actualReadyAt: z.string().optional(),
   promisedAt: z.string().optional(),
+  kitchenNotes: z.array(z.string()).optional(),
   acceptedAt: z.string().optional(),
   rejectedAt: z.string().optional(),
   rejectionReason: z.string().optional(),
@@ -52,6 +59,7 @@ export const orderEventTypeSchema = z.enum([
   'FULFILLMENT_SCHEDULED', 'PREP_DUE', 'PREP_STARTED', 'PREP_TIME_OVERRIDDEN', 'ORDER_READY',
   'ORDER_DISPATCHED', 'ORDER_COMPLETED', 'CANCELLATION_REQUESTED', 'REFUND_REQUESTED', 'REFUND_COMPLETED',
   'COMPLAINT_CREATED', 'COMPLAINT_RESOLVED', 'AVAILABILITY_CHANGED', 'POINTS_CREDITED', 'TIER_CHANGED',
+  'KITCHEN_PROBLEM_REPORTED',
 ])
 
 export const orderEventSchema = z.object({

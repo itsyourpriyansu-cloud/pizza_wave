@@ -9,6 +9,11 @@ export type ChatNodeId =
   | 'START' | 'MAIN_MENU' | 'TRACK_ORDER' | 'ORDER_STATUS' | 'REPORT_PROBLEM' | 'PROBLEM_CATEGORY'
   | 'SELECT_ORDER_ITEM' | 'CREATE_SUPPORT_CASE' | 'REFUND_STATUS' | 'LOYALTY_HELP' | 'HUMAN_HANDOFF'
 
-export interface ChatMessage { id: string; conversationId: string; from: 'CUSTOMER' | 'SYSTEM' | 'OWNER'; text: string; intent?: ChatIntent; at: string }
+export type SimulatedMessageType = 'ORDER_CONFIRMATION' | 'DELAY' | 'READY_FOR_PICKUP' | 'ON_THE_WAY' | 'POINTS_EARNED' | 'BIRTHDAY' | 'REORDER' | 'REFUND' | 'SUPPORT' | 'CAMPAIGN'
+
+export interface ChatMessage {
+  id: string; conversationId: string; from: 'CUSTOMER' | 'SYSTEM' | 'OWNER'; text: string;
+  intent?: ChatIntent; channel?: ConversationChannel; messageType?: SimulatedMessageType; at: string
+}
 
 export interface Conversation { id: string; customerId: string; channel: ConversationChannel; status: 'OPEN' | 'CLOSED'; node: ChatNodeId; createdAt: string; updatedAt: string }

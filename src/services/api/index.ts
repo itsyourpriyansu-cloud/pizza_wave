@@ -14,6 +14,8 @@ import * as crm from './crm.api'
 import * as config from './config.api'
 import * as availability from './availability.api'
 import * as demo from './demo.api'
+import * as customer from './customer.api'
+import * as retention from './retention.api'
 
 /**
  * The single import surface the frontend should use: `api.catalog.getMenu()`,
@@ -21,7 +23,7 @@ import * as demo from './demo.api'
  * Every function here is a thin, Zod-validated axios call against /api/v1 — swapping MSW for a
  * real FastAPI backend later only touches src/prototype/msw, never this file or its callers.
  */
-export const api = { catalog, cart, checkout, payment, orders, owner, kds, loyalty, chat, support, refund, auth, crm, config, availability, demo }
+export const api = { catalog, cart, checkout, payment, orders, owner, kds, loyalty, chat, support, refund, auth, crm, config, availability, demo, customer, retention }
 
 export { endpoints } from './endpoints'
 export { apiClient } from './client'

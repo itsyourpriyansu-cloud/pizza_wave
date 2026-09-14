@@ -26,6 +26,15 @@ export class DemoClock implements Clock {
     this.offsetMs += minutes * 60_000
   }
 
+  setOffsetMinutes(minutes: number): void {
+    this.offsetMs = minutes * 60_000
+    this.frozenAt = null
+  }
+
+  offsetMinutes(): number {
+    return Math.round(this.offsetMs / 60_000)
+  }
+
   freeze(at: Date = new Date()): void {
     this.frozenAt = at
   }

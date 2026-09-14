@@ -79,6 +79,8 @@ body { overflow-x: hidden; }
 .product-foot { margin-top: .6rem; }
 .product-foot > strong { font-size: 1rem; }
 .product-foot .icon-button { border-radius: 13px; }
+.customizable-add { display: flex; align-items: center; gap: .35rem; }
+.customizable-add > span { color: var(--wave-burgundy); font-size: .61rem; font-weight: 700; text-transform: uppercase; white-space: nowrap; }
 .product-skeleton { height: 278px; }
 .usual-products { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .75rem; }
 

@@ -1,12 +1,37 @@
-import { ChefHat, LogOut, Tablet } from 'lucide-react'
-import { useState } from 'react'
+import { useMutation } from '@tanstack/react-query'
+import { ChefHat, LogOut, Radio, ShieldCheck, Tablet } from 'lucide-react'
+import { useState, type FormEvent } from 'react'
+import { NavLink, Outlet } from 'react-router-dom'
+import { showDemoTools } from '../../../app/config/env'
+import { readKdsSession, sessionKeys } from '../../../app/router/routeGuards'
+import { useKdsActions, useKdsHeartbeat } from '../../../features/kds/hooks/useKds'
+import { kdsLogin } from '../../../services/api/auth.api'
 import { PrimaryButton, SecondaryButton, TextInput } from '../../../shared/components'
 import type { KdsSession } from '../../../shared/types/domain'
 
-const key = 'pizza-wave:session:kds'
+function KdsLogin({ onSuccess }: { onSuccess: (session: KdsSession) => void }) {
+  const [pin, setPin] = useState('')
+  const login = useMutation({
+    mutationFn: () => kdsLogin(pin),
+    onSuccess: (serverSession) => {
+      const session: KdsSession = { realm: 'kds', device: serverSession.device, expiresAt: serverSession.expiresAt }
+      sessionStorage.setItem(sessionKeys.kds, JSON.stringify(session))
+      onSuccess(session)
+    },
+  })
+  const submit = (event: FormEvent) => { event.preventDefault(); login.mutate() }
+  return <main className="kds-login-page"><section className="kds-login-brand"><div className="kds-login-mark"><ChefHat /></div><span>THE PIZZA WAVE · GRAND ROAD</span><h1>KITCHEN<br />COMMAND.</h1><p>System timing, clear tickets and large controls for a focused service.</p><div><ShieldCheck /><strong>Trusted device</strong><span>Kitchen Tablet #1</span></div></section><section className="kds-login-panel"><form className="kds-login-card" onSubmit={submit}><Tablet /><span>SEPARATE KDS REALM</span><h2>Start chef shift</h2><p>This shift can prepare orders and manage temporary availability only.</p><TextInput label="4-digit Chef PIN" type="password" inputMode="numeric" autoComplete="one-time-code" maxLength={4} value={pin} onChange={(event) => setPin(event.target.value.replace(/\D/g, ''))} />{login.isError && <p className="kds-form-error" role="alert">Chef PIN did not match this trusted device.</p>}<PrimaryButton type="submit" disabled={login.isPending || pin.length !== 4}>{login.isPending ? 'VERIFYING…' : 'START SHIFT'}</PrimaryButton><small>Demo PIN: 2580 · 12-hour shift session</small></form></section></main>
+}
+
 export default function KdsPage() {
-  const [session, setSession] = useState<KdsSession | null>(() => { try { return JSON.parse(sessionStorage.getItem(key) ?? 'null') } catch { return null } }); const [pin, setPin] = useState(''); const [error, setError] = useState('')
-  const login = (event: React.FormEvent) => { event.preventDefault(); if (pin !== '2580') { setError('Enter the demo chef PIN from the blueprint.'); return } const next: KdsSession = { realm: 'kds', device: 'Kitchen Tablet #1', expiresAt: new Date(Date.now() + 12 * 60 * 60 * 1000).toISOString() }; sessionStorage.setItem(key, JSON.stringify(next)); setSession(next) }
-  if (!session) return <main className="realm-page kds-realm"><section className="realm-card"><div className="realm-icon"><ChefHat /></div><span>KITCHEN DISPLAY SYSTEM</span><h1>Chef sign in</h1><p>Trusted device: Kitchen Tablet #1. Kitchen access never opens customer or founder data.</p><form onSubmit={login}><TextInput label="Chef PIN" type="password" inputMode="numeric" maxLength={4} value={pin} onChange={(event) => setPin(event.target.value)} />{error && <p className="form-error">{error}</p>}<PrimaryButton type="submit"><Tablet size={18} /> START SHIFT SHELL</PrimaryButton></form></section></main>
-  return <main className="protected-shell kds-protected"><header><div><span>KDS · TRUSTED DEVICE</span><h1>Kitchen Tablet #1</h1></div><SecondaryButton onClick={() => { sessionStorage.removeItem(key); setSession(null) }}><LogOut size={18} /> End shift</SecondaryButton></header><section><ChefHat /><span>STAGE 1 BOUNDARY</span><h2>The kitchen surface is isolated and ready.</h2><p>The exact three operational KDS screens, timers and availability controls begin in a later approved stage.</p></section></main>
+  const [session, setSession] = useState<KdsSession | null>(() => readKdsSession())
+  const heartbeat = useKdsHeartbeat(Boolean(session))
+  const actions = useKdsActions()
+  if (!session) return <KdsLogin onSuccess={setSession} />
+  const endShift = () => {
+    actions.heartbeat.mutate(false)
+    sessionStorage.removeItem(sessionKeys.kds)
+    setSession(null)
+  }
+  return <main className="kds-app"><header className="kds-header"><div className="kds-wordmark"><span>PW</span><div><strong>KITCHEN DISPLAY</strong><small>Kitchen Tablet #1</small></div></div><nav aria-label="KDS screens"><NavLink to="/kds/" end>QUEUE</NavLink><NavLink to="/kds/availability">AVAILABILITY</NavLink></nav><div className="kds-header-actions"><span className={`kds-heartbeat ${heartbeat.data?.online === false ? 'offline' : ''}`}><Radio /> {heartbeat.data?.online === false ? 'OFFLINE' : 'KDS ONLINE'}</span>{showDemoTools && <button type="button" className="kds-demo-offline" onClick={() => actions.heartbeat.mutate(heartbeat.data?.online === false)}>{heartbeat.data?.online === false ? 'RESTORE HEARTBEAT' : 'DEMO: KDS OFFLINE'}</button>}<SecondaryButton onClick={endShift}><LogOut /> END SHIFT</SecondaryButton></div></header><Outlet /></main>
 }
