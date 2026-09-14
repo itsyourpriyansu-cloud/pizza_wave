@@ -4,7 +4,7 @@ import { CustomerDataBoundary } from '../../surfaces/customer/layout/CustomerDat
 import { CustomerLayout } from '../../surfaces/customer/layout/CustomerLayout'
 import { OwnerDataBoundary } from '../../surfaces/owner/layout/OwnerDataBoundary'
 import { KdsDataBoundary } from '../../surfaces/kds/layout/KdsDataBoundary'
-import { Skeleton } from '../../shared/components'
+import { BrandedBootLoader, type BootSurface } from '../../shared/components'
 
 const LandingPage = lazy(() => import('../../surfaces/landing/pages/LandingPage'))
 const HomePage = lazy(() => import('../../surfaces/customer/pages/HomePage'))
@@ -38,7 +38,8 @@ const KdsOrderPage = lazy(() => import('../../surfaces/kds/pages/KdsOrderPage'))
 const KdsAvailabilityPage = lazy(() => import('../../surfaces/kds/pages/KdsAvailabilityPage'))
 const TeamPage = lazy(() => import('../../surfaces/landing/pages/TeamPage'))
 
-const loading = <main className="boot-state"><Skeleton className="boot-skeleton" /></main>
+const initialSurface: BootSurface = location.pathname.startsWith('/owner') ? 'owner' : location.pathname.startsWith('/kds') ? 'kds' : 'customer'
+const loading = <BrandedBootLoader surface={initialSurface} />
 const customerChildren = [
   'offers', 'profile/addresses',
 ].map((path) => ({ path, element: <StagePlaceholderPage /> }))

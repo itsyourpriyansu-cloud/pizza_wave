@@ -1,6 +1,6 @@
 import { useEffect, useState, type PropsWithChildren } from 'react'
 import { env } from '../../../app/config/env'
-import { ErrorState, Skeleton } from '../../../shared/components'
+import { BrandedBootLoader, ErrorState } from '../../../shared/components'
 import { ensureScopedWorker } from '../../../services/pwa/ensureScopedWorker'
 
 let kdsBootPromise: Promise<void> | null = null
@@ -27,6 +27,6 @@ export function KdsDataBoundary({ children }: PropsWithChildren) {
     bootKdsRuntime().then(() => setState('ready')).catch(() => setState('error'))
   }, [])
   if (state === 'error') return <main className="boot-state"><ErrorState retry={() => location.reload()} /></main>
-  if (state === 'loading') return <main className="boot-state kds-boot"><div className="kds-boot-mark">PW</div><strong>KITCHEN TABLET #1</strong><Skeleton className="boot-skeleton" /></main>
+  if (state === 'loading') return <BrandedBootLoader surface="kds" />
   return children
 }
