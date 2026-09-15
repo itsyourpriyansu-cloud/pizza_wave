@@ -10,14 +10,13 @@ import { supportCaseSeed } from '../seed/support.seed'
 import { attentionSeed } from '../seed/attention.seed'
 import { demoClock } from '../../domain/shared/clock'
 import { eventBus } from '../events/event-bus'
-import { createCustomerSession } from '../../domain/auth/session.policy'
 import { celebrationSeed, familySeed, favouriteSeed, foodPreferencesSeed, notificationPreferencesSeed, notificationSeed, savedOrderSeed } from '../seed/customer-experience.seed'
 import { referralSeed } from '../seed/retention.seed'
 import { demoWhatsAppProvider } from '../../services/messaging/DemoWhatsAppProvider'
 
 export const DEMO_CART_ID = 'CART-DEMO'
 const CATALOG_VERSION = 6
-const AUTH_VERSION = 1
+const AUTH_VERSION = 2
 const OWNER_VERSION = 1
 const KDS_VERSION = 1
 const REALTIME_VERSION = 1
@@ -32,7 +31,7 @@ export async function resetDemoDatabase(): Promise<void> {
     await db.config.bulkAdd([
       { key: 'storeConfig', value: storeConfigSeed },
       { key: 'capabilities', value: deriveCapabilities(storeConfigSeed) },
-      { key: 'customerLoggedIn', value: true },
+      { key: 'customerLoggedIn', value: false },
       { key: 'orderSequence', value: orderHistorySeed.length },
       { key: 'smartCollections', value: smartCollectionSeed },
       { key: 'cartThreshold', value: { target: 499, label: 'Build a ₹499 feast' } },
@@ -56,7 +55,6 @@ export async function resetDemoDatabase(): Promise<void> {
     ])
 
     await db.customers.bulkAdd([primaryCustomerSeed, secondaryCustomerSeed])
-    await db.sessions.add({ id: 'SESSION-CUSTOMER-DEMO', realm: 'CUSTOMER', payload: createCustomerSession(primaryCustomerSeed.id, demoClock.now()) })
     await db.categories.bulkAdd(categorySeed)
     await db.products.bulkAdd(productSeed)
     await db.carts.add({ id: DEMO_CART_ID, customerId: primaryCustomerSeed.id, status: 'ACTIVE', updatedAt: new Date(0).toISOString() })
@@ -101,8 +99,7 @@ export async function ensureDemoDatabase(): Promise<void> {
   if (authVersion?.value !== AUTH_VERSION) {
     await db.transaction('rw', db.sessions, db.config, async () => {
       await db.sessions.where('realm').equals('CUSTOMER').delete()
-      await db.sessions.add({ id: 'SESSION-CUSTOMER-DEMO', realm: 'CUSTOMER', payload: createCustomerSession(primaryCustomerSeed.id, demoClock.now()) })
-      await db.config.put({ key: 'customerLoggedIn', value: true })
+      await db.config.put({ key: 'customerLoggedIn', value: false })
       await db.config.put({ key: 'authVersion', value: AUTH_VERSION })
     })
   }

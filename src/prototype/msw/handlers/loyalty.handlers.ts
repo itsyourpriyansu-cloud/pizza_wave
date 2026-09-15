@@ -3,11 +3,14 @@ import { db } from '../../database/db'
 import { calculateTierProgress } from '../../../domain/loyalty/loyalty.engine'
 import { toDemoCustomerView } from '../../../domain/customer/customer.view'
 import { API, boot, error, json, now } from './_shared'
+import { getActiveCustomerSession } from '../../services/customer-session'
 
 export const loyaltyHandlers = [
-  http.get(`${API}/loyalty`, async ({ request }) => {
+  http.get(`${API}/loyalty`, async () => {
     await boot()
-    const customerId = new URL(request.url).searchParams.get('customerId') ?? 'CUST001'
+    const session = await getActiveCustomerSession(now())
+    if (!session) return error('Customer authentication required', 401)
+    const customerId = session.customerId
     const customer = await db.customers.get(customerId)
     if (!customer) return error('Customer not found', 404)
     const progress = calculateTierProgress({ rolling120Orders: customer.stats.rolling120Orders, rolling120EligibleSpend: customer.stats.rolling120EligibleSpend })
@@ -24,8 +27,10 @@ export const loyaltyHandlers = [
     })
   }),
 
-  http.get(`${API}/loyalty/history`, async ({ request }) => {
-    await boot(); const customerId = new URL(request.url).searchParams.get('customerId') ?? 'CUST001'
+  http.get(`${API}/loyalty/history`, async () => {
+    await boot(); const session = await getActiveCustomerSession(now())
+    if (!session) return error('Customer authentication required', 401)
+    const customerId = session.customerId
     const transactions = await db.loyaltyTransactions.where('customerId').equals(customerId).sortBy('createdAt')
     return json(transactions.reverse())
   }),

@@ -37,6 +37,11 @@ export function validateModifierSelections(groups: ModifierGroup[], selections: 
   return issues
 }
 
+/** Validates the complete build so cross-step dependencies remain available, then returns only the active step's issue. */
+export function modifierIssueForGroup(groups: ModifierGroup[], selections: ModifierSelection[], groupId: string): ModifierValidationIssue | undefined {
+  return validateModifierSelections(groups, selections).find((issue) => issue.groupId === groupId)
+}
+
 export function configuredUnitPrice(basePrice: number, groups: ModifierGroup[], selections: ModifierSelection[]): number {
   return basePrice + groups.reduce((total, group) => {
     const selectedIds = new Set(selectedFor(selections, group.id))

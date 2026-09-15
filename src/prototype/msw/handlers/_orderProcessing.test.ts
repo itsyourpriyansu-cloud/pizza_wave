@@ -93,4 +93,24 @@ describe('payment-to-order boundary', () => {
     expect(await db.orders.where('orderIntentId').equals(intent.id).count()).toBe(0)
     expect(await db.cartItems.where('cartId').equals(DEMO_CART_ID).count()).toBe(1)
   })
+
+  it('deducts redeemed points once and records both redemption and pending earn', async () => {
+    const redeemedQuote = { ...quote, discount: 50, pointsRequested: 50, pointsUsable: 50, pointsValue: 50, pointsRedeemed: 50, eligibleSpend: 249, pointsToEarn: 9, total: quote.total - 50 }
+    const redeemedIntent = { ...intent, id: 'INTENT-REDEEM-TEST', quoteSnapshot: redeemedQuote }
+    const redeemedPayment = { ...payment, id: 'PAY-REDEEM-TEST', orderIntentId: redeemedIntent.id, amount: redeemedQuote.total }
+    await db.orderIntents.add(redeemedIntent)
+    await db.payments.add(redeemedPayment)
+
+    const before = (await db.customers.get('CUST001'))!
+    const order = await confirmPaymentAndCreateOrder(redeemedPayment)
+    const after = (await db.customers.get('CUST001'))!
+    const transactions = await db.loyaltyTransactions.where('orderId').equals(order.id).toArray()
+
+    expect(after.pointsAvailable).toBe(before.pointsAvailable - 50)
+    expect(after.pointsPending).toBe(before.pointsPending + 9)
+    expect(transactions).toEqual(expect.arrayContaining([
+      expect.objectContaining({ type: 'REDEEM', status: 'REDEEMED', points: -50 }),
+      expect.objectContaining({ type: 'EARN_PENDING', status: 'PENDING', points: 9 }),
+    ]))
+  })
 })

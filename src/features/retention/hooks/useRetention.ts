@@ -6,7 +6,7 @@ export const retentionKeys = {
   summary: ['retention', 'summary'] as const, referrals: ['retention', 'referrals'] as const,
   celebration: ['retention', 'celebration'] as const,
 }
-export const useRetentionSummary = () => useQuery({ queryKey: retentionKeys.summary, queryFn: api.retention.getRetentionSummary })
+export const useRetentionSummary = (enabled = true) => useQuery({ queryKey: retentionKeys.summary, queryFn: api.retention.getRetentionSummary, enabled })
 export const useReferrals = () => useQuery({ queryKey: retentionKeys.referrals, queryFn: api.retention.getReferrals })
 export const useCelebrationAutomation = () => useQuery({ queryKey: retentionKeys.celebration, queryFn: api.retention.getCelebrationAutomation })
 

@@ -19,6 +19,7 @@ afterAll(() => {
 beforeEach(async () => {
   server.resetHandlers()
   await resetDemoDatabase()
+  await api.auth.verifyCustomerOtp('9876543210', '123456')
 })
 
 async function preparePayment() {
@@ -34,6 +35,15 @@ async function preparePayment() {
 }
 
 describe('Stage 4 customer API flow', () => {
+  it('keeps personal rewards private and ignores redemption after logout', async () => {
+    await api.auth.logoutCustomer()
+    await api.cart.addCartItem('PIZZA-VEG-001')
+    await expect(api.loyalty.getLoyalty()).rejects.toMatchObject({ response: { status: 401 } })
+    const quote = await api.cart.quoteCart('PICKUP', 50)
+    expect(quote.pointsRedeemed).toBe(0)
+    expect(quote.discount).toBe(0)
+  })
+
   it('loads a newly initiated payment through the typed status contract', async () => {
     const { payment } = await preparePayment()
     const result = await api.payment.getPaymentStatus(payment.id)

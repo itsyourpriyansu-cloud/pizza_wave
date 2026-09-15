@@ -1,7 +1,8 @@
-import { lazy, Suspense } from 'react'
+import { lazy, Suspense, type ReactNode } from 'react'
 import { createBrowserRouter, RouterProvider } from 'react-router-dom'
 import { CustomerDataBoundary } from '../../surfaces/customer/layout/CustomerDataBoundary'
 import { CustomerLayout } from '../../surfaces/customer/layout/CustomerLayout'
+import { CustomerSessionGate } from '../../surfaces/customer/layout/CustomerSessionGate'
 import { OwnerDataBoundary } from '../../surfaces/owner/layout/OwnerDataBoundary'
 import { KdsDataBoundary } from '../../surfaces/kds/layout/KdsDataBoundary'
 import { BrandedBootLoader, type BootSurface } from '../../shared/components'
@@ -41,22 +42,23 @@ const TeamPage = lazy(() => import('../../surfaces/landing/pages/TeamPage'))
 const initialSurface: BootSurface = location.pathname.startsWith('/owner') ? 'owner' : location.pathname.startsWith('/kds') ? 'kds' : 'customer'
 const loading = <BrandedBootLoader surface={initialSurface} />
 const customerChildren = [
-  'offers', 'profile/addresses',
+  'offers',
 ].map((path) => ({ path, element: <StagePlaceholderPage /> }))
+const protectedPage = (page: ReactNode) => <CustomerSessionGate>{page}</CustomerSessionGate>
 
 const router = createBrowserRouter([
   { path: '/', element: <LandingPage /> },
   { path: '/app', element: <CustomerDataBoundary><CustomerLayout /></CustomerDataBoundary>, children: [
     { index: true, element: <HomePage /> }, { path: 'menu', element: <MenuPage /> }, { path: 'search', element: <SearchPage /> },
     { path: 'product/:productId', element: <ProductDetailPage /> }, { path: 'build/:productId', element: <BuildPizzaPage /> }, { path: 'cart', element: <CartPage /> },
-    { path: 'auth', element: <AuthPage /> }, { path: 'checkout', element: <CheckoutPage /> }, { path: 'payment/:paymentId', element: <PaymentPage /> }, { path: 'payment', element: <PaymentPage /> },
-    { path: 'orders', element: <OrdersPage /> }, { path: 'orders/:orderId', element: <OrderTrackingPage /> },
-    { path: 'rewards', element: <RewardsPage /> }, { path: 'rewards/history', element: <RewardsHistoryPage /> }, { path: 'wave-id', element: <WaveIdPage /> },
-    { path: 'saved-orders', element: <SavedOrdersPage /> }, { path: 'favourites', element: <FavouritesPage /> },
-    { path: 'profile', element: <ProfilePage /> }, { path: 'profile/preferences', element: <PreferencesPage /> },
-    { path: 'family', element: <FamilyPage /> }, { path: 'celebrations', element: <CelebrationsPage /> },
-    { path: 'profile/notifications', element: <NotificationsPage /> }, { path: 'notifications', element: <NotificationsPage /> }, { path: 'support', element: <SupportPage /> },
-    { path: 'refer', element: <ReferralPage /> },
+    { path: 'auth', element: <AuthPage /> }, { path: 'checkout', element: protectedPage(<CheckoutPage />) }, { path: 'payment/:paymentId', element: protectedPage(<PaymentPage />) }, { path: 'payment', element: protectedPage(<PaymentPage />) },
+    { path: 'orders', element: protectedPage(<OrdersPage />) }, { path: 'orders/:orderId', element: protectedPage(<OrderTrackingPage />) },
+    { path: 'rewards', element: protectedPage(<RewardsPage />) }, { path: 'rewards/history', element: protectedPage(<RewardsHistoryPage />) }, { path: 'wave-id', element: protectedPage(<WaveIdPage />) },
+    { path: 'saved-orders', element: protectedPage(<SavedOrdersPage />) }, { path: 'favourites', element: protectedPage(<FavouritesPage />) },
+    { path: 'profile', element: protectedPage(<ProfilePage />) }, { path: 'profile/preferences', element: protectedPage(<PreferencesPage />) }, { path: 'profile/addresses', element: protectedPage(<StagePlaceholderPage />) },
+    { path: 'family', element: protectedPage(<FamilyPage />) }, { path: 'celebrations', element: protectedPage(<CelebrationsPage />) },
+    { path: 'profile/notifications', element: protectedPage(<NotificationsPage />) }, { path: 'notifications', element: protectedPage(<NotificationsPage />) }, { path: 'support', element: protectedPage(<SupportPage />) },
+    { path: 'refer', element: protectedPage(<ReferralPage />) },
     ...customerChildren,
   ] },
   { path: '/owner', element: <OwnerDataBoundary><OwnerPage /></OwnerDataBoundary> },

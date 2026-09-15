@@ -14,6 +14,7 @@ import type { AvailabilityRecord } from '../../../domain/availability/availabili
 import { API, boot, error, getStoreConfig, json, now } from './_shared'
 import { eventBus } from '../../events/event-bus'
 import { cartConfigurationKey, normalizeCartSelections, normalizeSpecialInstructions } from '../../../domain/cart/cart.identity'
+import { getActiveCustomerSession } from '../../services/customer-session'
 
 interface CartItemBody { productId: string; quantity?: number; modifiers?: CartItemModifierSelection[]; specialInstructions?: string }
 interface CartItemPatch { quantity?: number; modifiers?: CartItemModifierSelection[]; specialInstructions?: string }
@@ -96,7 +97,8 @@ async function getQuote(fulfillmentType: FulfillmentMode = 'DELIVERY', pointsReq
   const [cart, storeConfig, records, thresholdRecord] = await Promise.all([
     getCart(), getStoreConfig(), db.availability.toArray(), db.config.get('cartThreshold'),
   ])
-  const customer = await db.customers.get(cart.customerId ?? 'CUST001')
+  const customerSession = await getActiveCustomerSession(now())
+  const customer = customerSession ? await db.customers.get(customerSession.customerId) : undefined
   const products = await db.products.bulkGet(cart.items.map((item) => item.productId))
   const liveProducts = products.filter((product): product is Product => Boolean(product))
   const reprices: Array<Promise<number>> = []
@@ -111,7 +113,7 @@ async function getQuote(fulfillmentType: FulfillmentMode = 'DELIVERY', pointsReq
   return quoteCart({
     items: liveItems,
     fulfillmentType, customerTier: customer?.tier ?? 'MEMBER', pointsAvailable: customer?.pointsAvailable ?? 0,
-    pointsRequested, deliveryFeeTable: { DELIVERY: storeConfig.deliveryFeeFlat, PICKUP: 0, STORE: 0 },
+    pointsRequested: customer ? pointsRequested : 0, deliveryFeeTable: { DELIVERY: storeConfig.deliveryFeeFlat, PICKUP: 0, STORE: 0 },
     threshold, availabilityIssues: availabilityIssues(cart.items, liveProducts, records),
   })
 }

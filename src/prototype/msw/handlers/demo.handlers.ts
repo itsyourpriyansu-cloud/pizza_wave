@@ -118,7 +118,8 @@ export const demoHandlers = [
     const { loggedIn } = await request.json() as { loggedIn: boolean }
     await db.config.put({ key: 'customerLoggedIn', value: loggedIn })
     await db.sessions.where('realm').equals('CUSTOMER').delete()
-    if (loggedIn) await db.sessions.add({ id: 'SESSION-CUSTOMER-DEMO', realm: 'CUSTOMER', payload: createCustomerSession('CUST001', demoClock.now()) })
-    return json({ loggedIn })
+    const session = loggedIn ? createCustomerSession('CUST001', demoClock.now()) : undefined
+    if (session) await db.sessions.add({ id: 'SESSION-CUSTOMER-DEMO', realm: 'CUSTOMER', payload: session })
+    return json({ loggedIn, session })
   }),
 ]

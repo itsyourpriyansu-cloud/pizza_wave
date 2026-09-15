@@ -10,10 +10,14 @@ import { BottomSheet, EmptyState, ErrorState, IconButton, PrimaryButton, Quantit
 import { getProductAsset } from '../../../shared/utils/assets'
 import { CustomerAsset } from '../components/CustomerAsset'
 import type { LegacyCart } from '../../../domain/cart/cart.types'
+import { useDemo } from '../../../app/providers/DemoProvider'
 
 function modifierNames(item: LegacyCart['items'][number]) {
-  if (item.customizationSummary?.length) return item.customizationSummary.map((selection) => selection.optionName)
   const product = item.product
+  const groupOrder = new Map((product.modifierGroups ?? []).map((group, index) => [group.id, index]))
+  if (item.customizationSummary?.length) return [...item.customizationSummary]
+    .sort((left, right) => (groupOrder.get(left.groupId) ?? 99) - (groupOrder.get(right.groupId) ?? 99))
+    .map((selection) => selection.optionName)
   return item.modifiers.flatMap((selection) => {
     const group = product.modifierGroups?.find((candidate) => candidate.id === selection.groupId)
     return selection.optionIds.map((id) => group?.options.find((option) => option.id === id)?.name).filter((name): name is string => Boolean(name))
@@ -26,15 +30,17 @@ export default function CartPage() {
   const pointsRequested = useAppStore((state) => state.checkoutPointsRequested)
   const setPointsRequested = useAppStore((state) => state.setCheckoutPointsRequested)
   const mode = storedMode === 'STORE' ? 'DELIVERY' : storedMode
+  const { customerLoggedIn } = useDemo()
   const cart = useCart()
   const usePoints = pointsRequested > 0
-  const quote = useCartQuote(mode, pointsRequested)
-  const loyalty = useLoyalty()
+  const quote = useCartQuote(mode, customerLoggedIn ? pointsRequested : 0)
+  const loyalty = useLoyalty(customerLoggedIn)
   const recommendations = useRecommendations('popular')
   const { add, update, remove } = useCartActions()
   const [changeOpen, setChangeOpen] = useState(true)
   const issue = quote.data?.availabilityIssues?.[0]
   useEffect(() => { if (issue) setChangeOpen(true) }, [issue?.entityId, issue?.itemId])
+  useEffect(() => { if (!customerLoggedIn && pointsRequested) setPointsRequested(0) }, [customerLoggedIn, pointsRequested, setPointsRequested])
 
   const suggestions = useMemo(() => recommendations.data?.filter((product) => ['sides', 'shakes', 'desserts'].includes(product.category) && !cart.data?.items.some((item) => item.productId === product.id)).slice(0, 3) ?? [], [cart.data?.items, recommendations.data])
 
@@ -44,7 +50,7 @@ export default function CartPage() {
 
   const threshold = quote.data.threshold
   const thresholdProgress = threshold ? Math.min(100, (quote.data.subtotal / threshold.target) * 100) : 0
-  const pointsAvailable = loyalty.data?.customer.pointsAvailable ?? 182
+  const pointsAvailable = loyalty.data?.customer.pointsAvailable ?? 0
 
   return <section className="commerce-page cart-page">
     <header className="cart-header"><IconButton aria-label="Back to menu" onClick={() => navigate('/app/menu')}><ArrowLeft /></IconButton><div><span>YOUR ORDER</span><h1>Cart</h1></div><strong>{quote.data.itemCount} {quote.data.itemCount === 1 ? 'ITEM' : 'ITEMS'}</strong></header>
@@ -66,8 +72,10 @@ export default function CartPage() {
     </div>
 
     <aside className="cart-summary">
-      <section className="gold-wave-card"><Waves /><div><span>GOLD WAVE</span><h2>You'll earn +{quote.data.pointsToEarn} points</h2><p>{pointsAvailable} available</p></div><Sparkles /></section>
-      <button type="button" className={`points-redemption ${usePoints ? 'active' : ''}`} aria-pressed={usePoints} onClick={() => setPointsRequested(usePoints ? 0 : 50)}><span>{usePoints ? <Check /> : <i />}</span><div><strong>Use 50 points</strong><small>{usePoints ? `Save ₹${quote.data.pointsRedeemed ?? 0}` : '1 point = ₹1 · limits apply'}</small></div></button>
+      {customerLoggedIn ? <>
+        <section className="gold-wave-card"><Waves /><div><span>GOLD WAVE</span><h2>You'll earn +{quote.data.pointsToEarn} points</h2><p>{pointsAvailable} available</p></div><Sparkles /></section>
+        <button type="button" className={`points-redemption ${usePoints ? 'active' : ''}`} aria-pressed={usePoints} onClick={() => setPointsRequested(usePoints ? 0 : 50)}><span>{usePoints ? <Check /> : <i />}</span><div><strong>Use 50 points</strong><small>{usePoints ? `Save ₹${quote.data.pointsRedeemed ?? 0}` : '1 point = ₹1 · limits apply'}</small></div></button>
+      </> : <section className="gold-wave-card guest-wave-card"><Waves /><div><span>WAVE REWARDS</span><h2>Sign in to earn and use points</h2><p>Verify at checkout to connect your balance.</p><Link to="/app/auth?returnTo=%2Fapp%2Fcart">SIGN IN TO WAVE <ArrowRight size={15} /></Link></div><Sparkles /></section>}
       {quote.data.warnings.map((warning) => <p className="quote-warning" key={warning}>{warning}</p>)}
       <section className="bill-card"><div className="section-heading"><div><span>SERVER QUOTE</span><h2>Your bill</h2></div></div><dl><div><dt>Subtotal</dt><dd>₹{quote.data.subtotal}</dd></div>{quote.data.discount > 0 && <div className="saving"><dt>Wave Points</dt><dd>−₹{quote.data.discount}</dd></div>}<div><dt>{mode === 'DELIVERY' ? 'Delivery fee' : 'Pickup fee'}</dt><dd>{quote.data.deliveryFee ? `₹${quote.data.deliveryFee}` : 'FREE'}</dd></div><div className="bill-total"><dt>Total</dt><dd>₹{quote.data.total}</dd></div></dl><small>Availability and pricing rechecked just now.</small></section>
       <PrimaryButton className="checkout-cta" disabled={!quote.data.valid} onClick={() => navigate('/app/checkout')}>CONTINUE TO CHECKOUT <ArrowRight size={18} /></PrimaryButton>

@@ -4,6 +4,8 @@ import { DEMO_CART_ID, resetDemoDatabase } from '../../demo/reset-demo'
 import { getQuote } from './cart.handlers'
 import { storeConfigSeed } from '../../seed/store.seed'
 import { loadUnavailableItem } from '../../scenarios/unavailable-item'
+import { createCustomerSession } from '../../../domain/auth/session.policy'
+import { demoClock } from '../../../domain/shared/clock'
 
 describe('fulfillment-aware cart quote', () => {
   beforeEach(async () => {
@@ -24,6 +26,12 @@ describe('fulfillment-aware cart quote', () => {
 
   it('returns server-owned redemption, eligible spend, earning and threshold fields', async () => {
     await db.cartItems.update('CART-ITEM-QUOTE', { quantity: 3 })
+    const guestQuote = await getQuote('PICKUP', 50)
+    expect(guestQuote.pointsRedeemed).toBe(0)
+    expect(guestQuote.total).toBe(330)
+    expect(guestQuote.pointsToEarn).toBe(6)
+
+    await db.sessions.add({ id: 'SESSION-QUOTE-MEMBER', realm: 'CUSTOMER', payload: createCustomerSession('CUST001', demoClock.now()) })
     const quote = await getQuote('PICKUP', 50)
     expect(quote.subtotal).toBe(330)
     expect(quote.pointsRedeemed).toBe(50)

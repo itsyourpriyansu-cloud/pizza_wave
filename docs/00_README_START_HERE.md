@@ -179,6 +179,37 @@ Open `/app/orders` and select the active order.
 
 ### Customer rewards and retention
 
+The customer app now starts in a true guest state. A guest can browse, customize, and build a cart, but the app does not show Priyanshu's name, wallet, orders, profile, or saved preferences. Opening a personal route sends the guest to the OTP screen and returns them to that route after verification.
+
+Use the demo customer login:
+
+```text
+Phone: 9876543210
+OTP:   123456
+```
+
+### Check Wave Points in a live cart
+
+1. Reset the demo and confirm the header says **JOIN WAVE** rather than showing a Gold balance.
+2. Add products to the cart as a guest. The rewards card should ask the visitor to sign in; it must not show Priyanshu or 182 points.
+3. Sign in with the phone and OTP above. The cart remains intact and the header changes to **GOLD · 182**.
+4. In Cart, note the server-provided **You'll earn +N points** preview.
+5. Select **Use 50 points**. The bill must show **Wave Points −₹50** when the complete 50-point redemption is allowed, and the total must decrease by the exact server-approved amount.
+6. Continue through checkout and choose **PAY SUCCESS**. The redeemed points leave the available balance once, while the newly earned points appear as pending.
+7. Accept the order, complete it through KDS, then finish Delivery/Pickup. The pending points become available automatically.
+8. Open `/app/rewards/history` to verify separate **REDEEM**, **EARN_PENDING**, and completed/available activity.
+
+Wave Points rules in this prototype:
+
+- 1 point = ₹1.
+- A redemption request starts at 50 points and is capped at 20% of eligible food subtotal and the available wallet balance.
+- Gold earns 4% of eligible food spend after the points discount; points are rounded down to a whole number.
+- Delivery/pickup fees do not earn points.
+- New points remain pending until fulfillment completes.
+- If an order is rejected and fully refunded, its pending earn is reversed and any redeemed points are restored.
+
+Example: with a ₹330 pickup subtotal, 50 points reduce the bill to ₹280. Eligible spend becomes ₹280, so a Gold customer earns `floor(₹280 × 4%) = 11` pending points. Starting from 182 available points, payment changes the available balance to 132 and adds 11 pending for this order. Completion releases those 11, producing 143 available points (before any separately applicable frequency bonus). The seed's older 19 pending points remain a separate ledger entry.
+
 Useful demonstration routes include:
 
 - `/app/rewards` — Wave Points and tier progress
@@ -371,7 +402,7 @@ Ctrl + Alt + Shift + R
 
 Wait for the page to reload.
 
-Reset restores the seeded customer, 182 points, orders, cart, payments, menu availability, Owner state, KDS state, support cases, conversations, sessions, and demo clock.
+Reset restores the seeded customer wallet (182 points), orders, cart, payments, menu availability, Owner state, KDS state, support cases, conversations, and demo clock. It also clears all authenticated sessions, so the customer restarts as a guest and Owner/KDS require their own credentials again.
 
 ## 13. PWA installation and offline behavior
 

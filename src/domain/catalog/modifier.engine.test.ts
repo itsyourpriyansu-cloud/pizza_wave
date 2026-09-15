@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { kulhadPizzaModifiers, pizzaModifiers } from '../../prototype/seed/catalog.seed'
-import { availableOptions, configuredUnitPrice, defaultModifierSelections, validateModifierSelections } from './modifier.engine'
+import { availableOptions, configuredUnitPrice, defaultModifierSelections, modifierIssueForGroup, validateModifierSelections } from './modifier.engine'
 
 describe('modifier engine', () => {
   it('provides valid server defaults for compact fast-add', () => {
@@ -24,6 +24,16 @@ describe('modifier engine', () => {
     expect(availableOptions(cheese, [{ groupId: 'size', optionIds: ['large'] }]).some((option) => option.id === 'double-mozzarella')).toBe(true)
     const toppings = pizzaModifiers.find((group) => group.id === 'toppings')!
     expect(validateModifierSelections([toppings], [{ groupId: 'toppings', optionIds: ['paneer', 'mushroom', 'corn', 'olives'] }])[0]?.message).toContain('up to 3')
+  })
+
+  it('does not treat selections from completed builder steps as unavailable on the active step', () => {
+    const selections = [
+      { groupId: 'size', optionIds: ['regular'] },
+      { groupId: 'base', optionIds: ['normal'] },
+    ]
+    expect(modifierIssueForGroup(pizzaModifiers, selections, 'size')).toBeUndefined()
+    expect(modifierIssueForGroup(pizzaModifiers, selections, 'base')).toBeUndefined()
+    expect(modifierIssueForGroup(pizzaModifiers, selections, 'sauce')?.message).toContain('Choose 1 sauce')
   })
 
   it('provides valid defaults and size-aware cheese for Kulhad Pizza', () => {

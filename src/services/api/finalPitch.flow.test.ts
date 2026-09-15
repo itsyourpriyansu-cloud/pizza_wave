@@ -25,6 +25,7 @@ beforeEach(async () => {
 })
 
 async function createCheckoutPayment(fulfillmentType: 'DELIVERY' | 'PICKUP', productId = 'FRIES-001') {
+  await api.auth.verifyCustomerOtp('9876543210', '123456')
   await api.cart.addCartItem(productId)
   const options = await api.checkout.getCheckoutOptions(fulfillmentType)
   const checkout = await api.checkout.createCheckoutSession({

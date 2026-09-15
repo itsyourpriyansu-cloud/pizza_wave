@@ -57,12 +57,12 @@ export default function LandingPage() {
     <section className="landing-loyalty">
       <div className="landing-loyalty-copy"><span className="eyebrow">WAVE REWARDS</span><h2>Good pizza should bring you back.</h2><p>Rewards stay simple, visible and useful.</p><div className="loyalty-steps"><span><b>1</b>Order</span><span><b>2</b>Earn Wave Points</span><span><b>3</b>Move through membership levels</span><span><b>4</b>Get more reasons to come back</span></div><Link className="button landing-secondary" to="/app/rewards">START YOUR WAVE <ArrowRight /></Link></div>
       <motion.div className="landing-tier-showcase" initial={{ opacity: 0, y: 18 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: .35 }} transition={{ duration: .45, ease: [0.22, 1, 0.36, 1] }}>
-        <motion.article className="landing-reward-pass" whileHover={{ y: -4 }} transition={{ duration: .2 }} aria-label="Priyanshu's Gold Wave membership with 182 points ready">
+        <motion.article className="landing-reward-pass" whileHover={{ y: -4 }} transition={{ duration: .2 }} aria-label="Example Gold Wave membership with 182 points ready">
           <header><Logo variant="full" theme="light" size="sm" /><strong><Sparkles /> GOLD WAVE</strong></header>
           <div className="reward-pass-balance"><small>AVAILABLE BALANCE</small><div><strong>182</strong><span>WAVE POINTS<em>₹182 order value</em></span></div></div>
           <svg className="reward-pass-waves" viewBox="0 0 260 120" aria-hidden="true"><path d="M-12 82 Q52 18 116 82 T244 82 T372 82" /><path d="M-12 112 Q52 48 116 112 T244 112 T372 112" /></svg>
           <div className="reward-pass-utility"><span><Gift /> Ready to use</span><b>1 POINT = ₹1</b></div>
-          <footer><span><small>GOLD MEMBER</small><b>PRIYANSHU</b></span><span><small>HOME STORE</small><b>GRAND ROAD · PURI</b></span></footer>
+          <footer><span><small>EXAMPLE MEMBER</small><b>YOUR WAVE</b></span><span><small>HOME STORE</small><b>GRAND ROAD · PURI</b></span></footer>
         </motion.article>
         <div className="landing-tier-guide"><span><Gift /><b>Use from 50 points</b><small>Apply safely at cart</small></span><span><Sparkles /><b>Gold benefits active</b><small>More reasons to return</small></span></div>
       </motion.div>

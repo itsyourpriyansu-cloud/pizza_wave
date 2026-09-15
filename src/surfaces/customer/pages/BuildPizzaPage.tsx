@@ -1,13 +1,14 @@
-import { ArrowLeft, ArrowRight, Check, Pizza } from 'lucide-react'
+import { ArrowLeft, ArrowRight, Check, Clock3, Pizza, Zap } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { useProduct } from '../../../features/catalog/hooks/useCatalog'
 import { useCart, useCartActions } from '../../../features/cart/hooks/useCart'
-import { configuredUnitPrice, validateModifierSelections } from '../../../domain/catalog/modifier.engine'
+import { configuredUnitPrice, modifierIssueForGroup, validateModifierSelections } from '../../../domain/catalog/modifier.engine'
 import type { CartItemModifierSelection } from '../../../domain/cart/cart.types'
 import { ModifierGroupControl } from '../../../features/product/components/ModifierGroupControl'
 import { ErrorState, IconButton, PrimaryButton, QuantityStepper, SecondaryButton, Skeleton, StickyBottomAction } from '../../../shared/components'
+import { createPizzaPresets } from '../../../domain/catalog/pizza-presets'
 
 export default function BuildPizzaPage() {
   const { productId = '' } = useParams()
@@ -23,10 +24,12 @@ export default function BuildPizzaPage() {
   const [specialInstructions, setSpecialInstructions] = useState('')
   const [quantity, setQuantity] = useState(1)
   const [error, setError] = useState<string>()
+  const [quickError, setQuickError] = useState<string>()
   const initialized = useRef(false)
 
   const product = detail.data?.product
   const groups = useMemo(() => product?.modifierGroups ?? [], [product])
+  const presets = useMemo(() => createPizzaPresets(product?.price ?? 0, groups), [groups, product?.price])
   useEffect(() => {
     if (initialized.current || !product || ((editItemId || copyItemId) && !cart.data)) return
     const source = cart.data?.items.find((item) => item.id === (editItemId ?? copyItemId))
@@ -46,10 +49,11 @@ export default function BuildPizzaPage() {
   const liveUnitPrice = configuredUnitPrice(product.price, groups, selections)
   const liveTotal = liveUnitPrice * quantity
   const chosenCount = selections.find((selection) => selection.groupId === group.id)?.optionIds.length ?? 0
-  const groupIssue = validateModifierSelections([group], selections)[0]
+  const groupIssue = modifierIssueForGroup(groups, selections, group.id)
 
   const choose = (optionId: string) => {
     setError(undefined)
+    setQuickError(undefined)
     setSelections((current) => {
       const existing = current.find((selection) => selection.groupId === group.id)
       const selected = existing?.optionIds ?? []
@@ -80,10 +84,28 @@ export default function BuildPizzaPage() {
     else await add.mutateAsync({ productId: product.id, quantity, modifiers: selections, specialInstructions })
     navigate('/app/cart')
   }
+  const addPreset = async (preset: (typeof presets)[number]) => {
+    setQuickError(undefined)
+    try {
+      await add.mutateAsync({ productId: product.id, quantity: 1, modifiers: preset.selections })
+      navigate('/app/cart')
+    } catch {
+      setQuickError('That quick build just changed availability. Choose another or customize below.')
+    }
+  }
 
   return <section className="commerce-page builder-page">
     <header className="builder-header"><IconButton aria-label="Go back" onClick={back}><ArrowLeft /></IconButton><div><span>BUILD YOUR PIZZA</span><strong>{product.name}</strong></div><div className="live-total"><span>LIVE TOTAL</span><strong>₹{liveTotal}</strong></div></header>
     <div className="build-progress"><div><span>STEP {step + 1} / 7</span><strong>{group.name.toUpperCase()}</strong></div><div className="progress-track"><motion.i animate={{ width: `${((step + 1) / 7) * 100}%` }} transition={{ duration: .2 }} /></div></div>
+
+    {step === 0 && !editItemId && !copyItemId && <section className="quick-builds" aria-labelledby="quick-builds-title">
+      <header><span><Clock3 /> SHORT ON TIME?</span><h2 id="quick-builds-title">Pick a ready favourite.</h2><p>Add a proven combination now, or build your own below.</p></header>
+      <div className="quick-build-list">{presets.map((preset, index) => <motion.button type="button" key={preset.id} disabled={add.isPending} onClick={() => void addPreset(preset)} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * .04 }} aria-label={`Add ${preset.name} for ₹${preset.unitPrice}`}>
+        <span>{preset.id === 'CLASSIC' ? '01' : preset.id === 'CHEESY' ? '02' : '03'}</span><div><strong>{preset.name}</strong><small>{preset.description}</small><em>{preset.optionSummary}</em></div><b>₹{preset.unitPrice}<i><Zap size={13} /> ADD</i></b>
+      </motion.button>)}</div>
+      {quickError && <p className="quick-build-error" role="alert">{quickError}</p>}
+      <div className="custom-build-divider"><span>OR CUSTOMIZE IN 7 STEPS</span></div>
+    </section>}
 
     <motion.div className="builder-stage" key={group.id} initial={{ opacity: 0, x: 14 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: .2 }}>
       <div className="builder-step-copy"><span>{group.required ? 'REQUIRED SELECTION' : 'OPTIONAL EXTRA'}</span><h1>{group.name}</h1><p>{group.required ? 'Choose what feels right for this pizza.' : 'Skip it or add a little more to the meal.'}</p></div>

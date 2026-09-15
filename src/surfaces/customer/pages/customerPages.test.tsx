@@ -157,16 +157,28 @@ describe('Stage 3 customer commerce', () => {
     renderPage(<BuildPizzaPage />, '/app/build/PIZZA-VEG-001')
     expect(screen.getByText('STEP 1 / 7')).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: 'Size' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /add classic wave/i })).toBeInTheDocument()
+    expect(screen.getByText('OR CUSTOMIZE IN 7 STEPS')).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: /next/i }))
     expect(screen.getByRole('alert')).toHaveTextContent('Choose 1 size option.')
   })
 
   it('renders a server-shaped bill and Gold Wave preview in cart', () => {
+    mocks.customerLoggedIn = true
     mocks.cart = query({ id: 'CART-DEMO', status: 'ACTIVE', updatedAt: '', items: [{ id: 'line-1', cartId: 'CART-DEMO', productId: products[0].id, quantity: 2, modifiers: [], unitPriceSnapshot: 110, product: products[0] }] })
     mocks.quote = query({ itemCount: 2, subtotal: 220, discount: 0, pointsRequested: 0, pointsUsable: 0, pointsValue: 0, pointsRedeemed: 0, deliveryFee: 0, eligibleSpend: 220, pointsToEarn: 8, total: 220, threshold: { target: 499, remaining: 279, label: 'Build a ₹499 feast' }, availabilityIssues: [], warnings: [], valid: true })
     renderPage(<CartPage />, '/app/cart')
     expect(screen.getByRole('heading', { name: "You'll earn +8 points" })).toBeInTheDocument()
     expect(screen.getAllByText('₹220')).toHaveLength(3)
     expect(screen.getByRole('button', { name: /continue to checkout/i })).toBeEnabled()
+  })
+
+  it('keeps the seeded member identity and redemption control hidden from a guest cart', () => {
+    mocks.cart = query({ id: 'CART-DEMO', status: 'ACTIVE', updatedAt: '', items: [{ id: 'line-1', cartId: 'CART-DEMO', productId: products[0].id, quantity: 1, modifiers: [], unitPriceSnapshot: 110, product: products[0] }] })
+    mocks.quote = query({ itemCount: 1, subtotal: 110, discount: 0, pointsRequested: 0, pointsUsable: 0, pointsValue: 0, pointsRedeemed: 0, deliveryFee: 0, eligibleSpend: 110, pointsToEarn: 2, total: 110, availabilityIssues: [], warnings: [], valid: true })
+    renderPage(<CartPage />, '/app/cart')
+    expect(screen.getByRole('heading', { name: 'Sign in to earn and use points' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /use 50 points/i })).not.toBeInTheDocument()
+    expect(screen.queryByText(/182 available/i)).not.toBeInTheDocument()
   })
 })

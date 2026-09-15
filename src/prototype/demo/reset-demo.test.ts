@@ -12,6 +12,11 @@ describe('resetDemoDatabase', () => {
     expect((await db.products.get('PIZZA-VEG-001'))?.basePrice).toBe(110)
   })
 
+  it('starts the customer surface as a guest without exposing a seeded session', async () => {
+    expect(await db.sessions.where('realm').equals('CUSTOMER').count()).toBe(0)
+    expect((await db.config.get('customerLoggedIn'))?.value).toBe(false)
+  })
+
   it('keeps every pizza product on the complete seven-step customization contract', async () => {
     const products = await db.products.toArray()
     const pizzas = products.filter((product) => product.categoryId === 'pizza' || product.name.toLowerCase().includes('pizza'))

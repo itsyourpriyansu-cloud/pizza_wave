@@ -36,12 +36,12 @@ export default function HomePage() {
   const { customerLoggedIn } = useDemo()
   const capabilities = useCapabilities()
   const menu = useMenu()
-  const recommendations = useRecommendations('personalized')
+  const recommendations = useRecommendations('personalized', customerLoggedIn)
   const popularRecommendations = useRecommendations('popular')
   const cart = useCart()
-  const loyalty = useLoyalty()
+  const loyalty = useLoyalty(customerLoggedIn)
   const orders = useOrders(customerLoggedIn ? loyalty.data?.customer.id : undefined)
-  const retention = useRetentionSummary()
+  const retention = useRetentionSummary(customerLoggedIn)
   const { add, update } = useCartActions()
 
   if (menu.isError || capabilities.isError) return <ErrorState retry={() => { void menu.refetch(); void capabilities.refetch() }} />
@@ -62,7 +62,7 @@ export default function HomePage() {
   const activeOrderAsset = activeOrderProduct ? getProductAsset(activeOrderProduct.id, activeOrderProduct.image) : getProductAsset('PIZZA-CHK-001')
   const rankedRecommendations = retention.data?.recommendedProductIds.map((id) => products.find((product) => product.id === id)).filter((product): product is LegacyProductView => Boolean(product)) ?? recommendations.data ?? []
   const usual = retention.data?.usualProductIds.map((id) => products.find((product) => product.id === id)).filter((product): product is LegacyProductView => Boolean(product)) ?? (lastOrder ? lastOrder.items.map((item) => products.find((product) => product.id === item.productId)).filter((product): product is LegacyProductView => Boolean(product)) : (recommendations.data ?? []).slice(0, 2))
-  const customerName = loyalty.data?.customer.firstName ?? 'Priyanshu'
+  const customerName = loyalty.data?.customer.firstName ?? 'there'
   const hero = customerLoggedIn
     ? { eyebrow: `${mode === 'DELIVERY' ? 'DELIVERED' : 'READY'} YOUR WAY`, title: 'Your usual\nis calling.', cta: 'ADD YOUR USUAL' }
     : { eyebrow: mode === 'DELIVERY' ? 'HOT TO YOUR DOOR' : 'FRESH AT GRAND ROAD', title: mode === 'DELIVERY' ? 'Puri’s pizza.\nDelivered hot.' : 'Skip the wait.\nPick up fresh.', cta: 'ORDER NOW' }
@@ -87,7 +87,7 @@ export default function HomePage() {
       <section className="home-section usual-section"><SectionHeading eyebrow="YOUR USUAL" title="Ready when you are" /><div className="usual-products">{usual.map((product) => <ProductCard key={product.id} product={product} {...productAction(product.id)} />)}</div></section>
       {retention.data?.secondOrderLoop && <section className="second-order-loop"><Sparkles /><div><span>NEXT WAVE MILESTONE</span><h2>{retention.data.secondOrderLoop.title}</h2><p>{retention.data.secondOrderLoop.message}</p></div><Link to="/app/menu">ORDER AGAIN <ArrowRight /></Link></section>}
       {lastOrder && <section className="reorder-preview"><div className="usual-mark"><Sparkles /></div><div><span>REORDER PREVIEW · {lastOrder.publicOrderNumber}</span><h2>{lastOrder.items.map((item) => item.name).join(' + ')}</h2><p>{lastOrder.items.length} items · ₹{lastOrder.financialSnapshot.total}</p></div><Link to="/app/orders" aria-label="View previous order"><ArrowRight /></Link></section>}
-      {loyalty.data && <section className="points-card platinum-card"><div><span className="eyebrow">GOLD WAVE</span><h2><motion.span key={loyalty.data.customer.pointsAvailable} initial={{ opacity: 0, y: 7 }} animate={{ opacity: 1, y: 0 }}>{loyalty.data.customer.pointsAvailable}</motion.span> Wave Points</h2><p>{loyalty.data.ordersNeeded} orders + ₹{loyalty.data.spendNeeded} to Platinum</p></div><div className="points-orbit"><CustomerAsset src={pizzaWaveAssets.loyalty.gold} alt="Gold Wave tier emblem" className="home-tier-emblem" fallbackLabel="Gold" /><Waves /><PointsBadge points={loyalty.data.customer.pointsPending} /></div><div className="tier-progress-label"><span>{loyalty.data.customer.rolling120Orders} orders</span><span>{loyalty.data.customer.rolling120Orders + loyalty.data.ordersNeeded} for Platinum</span></div><div className="progress-pair"><span style={{ width: `${Math.min(100, (loyalty.data.customer.rolling120Orders / (loyalty.data.customer.rolling120Orders + loyalty.data.ordersNeeded)) * 100)}%` }} /></div></section>}
+      {loyalty.data && <section className="points-card platinum-card"><div><span className="eyebrow">GOLD WAVE</span><h2><motion.span key={loyalty.data.customer.pointsAvailable} initial={{ opacity: 0, y: 7 }} animate={{ opacity: 1, y: 0 }}>{loyalty.data.customer.pointsAvailable}</motion.span> Wave Points</h2><p>{loyalty.data.ordersNeeded} orders + ₹{loyalty.data.spendNeeded} to Platinum</p></div><div className="points-visual"><div className="points-orbit"><CustomerAsset src={pizzaWaveAssets.loyalty.gold} alt="Gold Wave tier emblem" className="home-tier-emblem" fallbackLabel="Gold" /><Waves /></div><PointsBadge points={loyalty.data.customer.pointsPending} /></div><div className="tier-progress-label"><span>{loyalty.data.customer.rolling120Orders} orders</span><span>{loyalty.data.customer.rolling120Orders + loyalty.data.ordersNeeded} for Platinum</span></div><div className="progress-pair"><span style={{ width: `${Math.min(100, (loyalty.data.customer.rolling120Orders / (loyalty.data.customer.rolling120Orders + loyalty.data.ordersNeeded)) * 100)}%` }} /></div></section>}
       <ProductRail eyebrow={`${retention.data?.favouriteCategory.toUpperCase() ?? 'PIZZA'} LOVER · PICKED FOR ${customerName.toUpperCase()}`} title="You might love these" products={rankedRecommendations} actionFor={productAction} to="/app/menu" />
       <section className="relevant-offer"><div><span>YOUR GOLD-WAVE PICK</span><h2>A little extra for your next pizza night.</h2><Link to="/app/offers">SEE YOUR OFFER <ArrowRight /></Link></div><CustomerAsset src={pizzaWaveAssets.macro.cheesePull} alt="Pizza slice with melted cheese" /></section>
       <ProductRail eyebrow="THE CROWD AGREES" title="Best sellers" products={bestSellers} actionFor={productAction} to="/app/menu?collection=best-sellers" />

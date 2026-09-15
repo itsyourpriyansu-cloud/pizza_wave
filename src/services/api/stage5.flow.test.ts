@@ -7,7 +7,7 @@ import { api, apiClient } from './index'
 const originalBaseUrl = apiClient.defaults.baseURL
 beforeAll(() => { apiClient.defaults.baseURL = 'http://pizza-wave.test/api/v1'; server.listen({ onUnhandledRequest: 'error' }) })
 afterAll(() => { server.close(); apiClient.defaults.baseURL = originalBaseUrl })
-beforeEach(async () => { server.resetHandlers(); await resetDemoDatabase() })
+beforeEach(async () => { server.resetHandlers(); await resetDemoDatabase(); await api.auth.verifyCustomerOtp('9876543210', '123456') })
 
 describe('Stage 5 customer API flow', () => {
   it('loads the canonical active order, events and backend-shaped tier progress', async () => {

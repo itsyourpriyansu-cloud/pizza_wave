@@ -23,7 +23,7 @@ export function CustomerLayout() {
   usePizzaWaveTools()
   const location = useLocation()
   const navigate = useNavigate(); const storedMode = useAppStore((state) => state.fulfillmentMode); const mode = storedMode === 'STORE' ? 'DELIVERY' : storedMode
-  const { data: cart } = useCart(); const { data: quote } = useCartQuote(mode); const { data: loyalty } = useLoyalty(); const { customerLoggedIn } = useDemo(); const { data: capabilities } = useCapabilities()
+  const { customerLoggedIn } = useDemo(); const { data: cart } = useCart(); const { data: quote } = useCartQuote(mode); const { data: loyalty } = useLoyalty(customerLoggedIn); const { data: capabilities } = useCapabilities()
   const [fulfillmentOpen, setFulfillmentOpen] = useState(false)
   const commerceFlow = /^\/app\/(product|build|cart)(\/|$)/.test(location.pathname)
   const fullFlow = /^\/app\/(auth|checkout|payment)(\/|$)/.test(location.pathname) || /^\/app\/orders\/[^/]+$/.test(location.pathname)

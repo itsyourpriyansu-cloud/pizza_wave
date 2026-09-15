@@ -6,7 +6,7 @@ import type { CustomerSession } from '../../domain/auth/auth.types'
 import { useAppStore } from '../../stores/app.store'
 import { env } from '../config/env'
 
-const CUSTOMER_SESSION_KEY = 'pizza-wave:customer-session'
+const CUSTOMER_SESSION_KEY = 'pizza-wave:customer-session:v2'
 const readCustomerSession = (): CustomerSession | undefined => {
   try {
     const stored = localStorage.getItem(CUSTOMER_SESSION_KEY)
@@ -29,25 +29,27 @@ const DemoContext = createContext<DemoContextValue | null>(null)
 export function DemoProvider({ children }: PropsWithChildren) {
   const queryClient = useQueryClient()
   const [customerSession, setCustomerSession] = useState<CustomerSession | undefined>(readCustomerSession)
-  const [customerLoggedIn, setLoggedIn] = useState(() => Boolean(readCustomerSession()) || localStorage.getItem('pizza-wave:demo:customer') !== 'guest')
-  const authenticateCustomer = (session: CustomerSession) => {
+  const customerLoggedIn = Boolean(customerSession)
+  const authenticateCustomer = useCallback((session: CustomerSession) => {
     localStorage.setItem(CUSTOMER_SESSION_KEY, JSON.stringify(session))
-    localStorage.setItem('pizza-wave:demo:customer', 'member')
-    setCustomerSession(session); setLoggedIn(true)
-  }
-  const setCustomerLoggedIn = async (value: boolean) => {
-    await apiClient.patch(endpoints.demoSession, { loggedIn: value })
-    localStorage.setItem('pizza-wave:demo:customer', value ? 'member' : 'guest')
-    if (!value) { localStorage.removeItem(CUSTOMER_SESSION_KEY); setCustomerSession(undefined) }
-    setLoggedIn(value)
-  }
+    setCustomerSession(session)
+    void queryClient.invalidateQueries({ queryKey: ['loyalty'] })
+    void queryClient.invalidateQueries({ queryKey: ['cart-quote'] })
+  }, [queryClient])
+  const setCustomerLoggedIn = useCallback(async (value: boolean) => {
+    const response = await apiClient.patch<{ loggedIn: boolean; session?: CustomerSession }>(endpoints.demoSession, { loggedIn: value })
+    if (value && response.data.session) authenticateCustomer(response.data.session)
+    if (!value) { localStorage.removeItem(CUSTOMER_SESSION_KEY); setCustomerSession(undefined); useAppStore.getState().setCheckoutPointsRequested(0) }
+    await queryClient.invalidateQueries()
+  }, [authenticateCustomer, queryClient])
   const reset = useCallback(async () => {
     await apiClient.post(endpoints.demoReset)
     localStorage.removeItem('pizza-wave:app')
     localStorage.removeItem(CUSTOMER_SESSION_KEY)
-    localStorage.setItem('pizza-wave:demo:customer', 'member')
+    localStorage.removeItem('pizza-wave:customer-session')
+    localStorage.removeItem('pizza-wave:demo:customer')
     useAppStore.setState({ fulfillmentMode: 'DELIVERY', checkoutPointsRequested: 0 })
-    setLoggedIn(true)
+    setCustomerSession(undefined)
     await queryClient.invalidateQueries()
   }, [queryClient])
   useEffect(() => {
@@ -61,7 +63,7 @@ export function DemoProvider({ children }: PropsWithChildren) {
     document.addEventListener('keydown', onKeyDown)
     return () => document.removeEventListener('keydown', onKeyDown)
   }, [reset])
-  const value = useMemo(() => ({ customerLoggedIn, customerSession, authenticateCustomer, setCustomerLoggedIn, reset }), [customerLoggedIn, customerSession])
+  const value = useMemo(() => ({ customerLoggedIn, customerSession, authenticateCustomer, setCustomerLoggedIn, reset }), [authenticateCustomer, customerLoggedIn, customerSession, reset, setCustomerLoggedIn])
   return <DemoContext.Provider value={value}>{children}</DemoContext.Provider>
 }
 

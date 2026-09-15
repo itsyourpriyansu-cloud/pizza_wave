@@ -2,12 +2,11 @@ import { http } from 'msw'
 import { db } from '../../database/db'
 import { createId } from '../../../domain/shared/ids'
 import { buildCartSnapshot } from '../../../domain/cart/cart.logic'
-import { isSessionExpired } from '../../../domain/auth/session.policy'
 import type { CheckoutAddress, CheckoutSession } from '../../../domain/checkout/checkout.types'
-import type { CustomerSession } from '../../../domain/auth/auth.types'
 import type { FulfillmentMode } from '../../../domain/customer/customer.types'
 import { API, boot, error, getCapabilities, json, now } from './_shared'
 import { getCart, getQuote } from './cart.handlers'
+import { getActiveCustomerSession } from '../../services/customer-session'
 
 interface CheckoutSessionInput {
   fulfillmentType: FulfillmentMode
@@ -17,13 +16,6 @@ interface CheckoutSessionInput {
   instructions?: string
   note?: string
   pointsRequested?: number
-}
-
-async function activeCustomerSession(): Promise<CustomerSession | undefined> {
-  const rows = await db.sessions.where('realm').equals('CUSTOMER').toArray()
-  const session = rows.at(-1)?.payload
-  if (!session || session.realm !== 'CUSTOMER' || isSessionExpired(session, now())) return undefined
-  return session
 }
 
 function pickupSlots(from: Date): string[] {
@@ -41,7 +33,7 @@ function pickupSlots(from: Date): string[] {
 export const checkoutHandlers = [
   http.get(`${API}/checkout/options`, async ({ request }) => {
     await boot()
-    const session = await activeCustomerSession()
+    const session = await getActiveCustomerSession(now())
     if (!session) return error('Customer authentication required', 401)
     const customer = await db.customers.get(session.customerId)
     if (!customer) return error('Customer not found', 404)
@@ -58,7 +50,7 @@ export const checkoutHandlers = [
 
   http.post(`${API}/checkout/session`, async ({ request }) => {
     await boot()
-    const auth = await activeCustomerSession()
+    const auth = await getActiveCustomerSession(now())
     if (!auth) return error('Customer authentication required', 401)
     const body = await request.json() as CheckoutSessionInput
     if (!['DELIVERY', 'PICKUP'].includes(body.fulfillmentType)) return error('Choose Delivery or Pickup', 422)
@@ -84,7 +76,7 @@ export const checkoutHandlers = [
 
   http.post(`${API}/checkout/order-intent`, async ({ request }) => {
     await boot()
-    const auth = await activeCustomerSession()
+    const auth = await getActiveCustomerSession(now())
     if (!auth) return error('Customer authentication required', 401)
     const { checkoutSessionId } = await request.json() as { checkoutSessionId: string }
     const checkout = await db.checkoutSessions.get(checkoutSessionId)
@@ -118,4 +110,4 @@ export const checkoutHandlers = [
   }),
 ]
 
-export { activeCustomerSession, pickupSlots }
+export { pickupSlots }

@@ -21,9 +21,10 @@ afterAll(() => {
 beforeEach(async () => {
   server.resetHandlers()
   await resetDemoDatabase()
+  await api.auth.verifyCustomerOtp('9876543210', '123456')
 })
 
-async function preparePayment(fulfillmentType: 'DELIVERY' | 'PICKUP' = 'DELIVERY', pickupSlot?: string) {
+async function preparePayment(fulfillmentType: 'DELIVERY' | 'PICKUP' = 'DELIVERY', pickupSlot?: string, pointsRequested = 0) {
   await api.cart.addCartItem('PIZZA-VEG-001')
   const options = await api.checkout.getCheckoutOptions(fulfillmentType)
   const checkout = await api.checkout.createCheckoutSession({
@@ -31,6 +32,7 @@ async function preparePayment(fulfillmentType: 'DELIVERY' | 'PICKUP' = 'DELIVERY
     phone: options.customer.phone,
     addressSnapshot: fulfillmentType === 'DELIVERY' ? options.customer.defaultAddress : undefined,
     pickupSlot: fulfillmentType === 'PICKUP' ? pickupSlot ?? options.pickupSlots[0] : undefined,
+    pointsRequested,
   })
   const intent = await api.checkout.createOrderIntent(checkout.id)
   const initiated = await api.payment.initiatePayment(intent.id)
@@ -145,6 +147,25 @@ describe('Stage 8 synchronized platform', () => {
     expect(customer?.pointsPending).toBeLessThan(pendingBeforeReject)
     expect(unresolved).toHaveLength(0)
     expect(messages.messages.some((message) => message.text.includes('refund') && message.text.includes('complete'))).toBe(true)
+  })
+
+  it('restores redeemed points when a paid order is rejected and fully refunded', async () => {
+    await api.demo.setKitchenLoad(100)
+    const before = (await db.customers.get('CUST001'))!
+    const { payment } = await preparePayment('DELIVERY', undefined, 50)
+    const paid = await api.payment.confirmPaymentDemo(payment.id)
+    const afterPayment = (await db.customers.get('CUST001'))!
+    expect(afterPayment.pointsAvailable).toBeLessThan(before.pointsAvailable)
+
+    await api.owner.rejectOwnerOrder(paid.order!.id, 'Kitchen load is unsafe')
+    await api.demo.advanceTime(1)
+    const afterRefund = (await db.customers.get('CUST001'))!
+    const wallet = await api.loyalty.getLoyaltyWallet('CUST001')
+    expect(afterRefund.pointsAvailable).toBe(before.pointsAvailable)
+    expect(wallet).toEqual(expect.arrayContaining([
+      expect.objectContaining({ orderId: paid.order!.id, type: 'REDEEM', points: expect.any(Number) }),
+      expect.objectContaining({ orderId: paid.order!.id, type: 'REVERSAL', status: 'AVAILABLE', points: expect.any(Number) }),
+    ]))
   })
 
   it('answers track, wallet, availability and refund chat intents from current backend data', async () => {

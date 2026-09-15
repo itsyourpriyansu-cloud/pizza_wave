@@ -48,12 +48,17 @@ export async function processRefundAutomation(refund: Refund, at: Date): Promise
   const pending = await db.loyaltyTransactions.where('orderId').equals(completed.orderId).and((tx) => tx.status === 'PENDING').toArray()
   const pendingPoints = pending.reduce((sum, tx) => sum + Math.max(0, tx.points), 0)
   const availablePoints = Math.max(0, completed.pointsToReverse - pendingPoints)
+  const redeemed = completed.reason === 'ORDER_REJECTED'
+    ? await db.loyaltyTransactions.where('orderId').equals(completed.orderId).and((tx) => tx.type === 'REDEEM').toArray()
+    : []
+  const restoredPoints = redeemed.reduce((sum, tx) => sum + Math.abs(tx.points), 0)
   await db.transaction('rw', db.refunds, db.orders, db.loyaltyTransactions, db.customers, db.attentionItems, async () => {
     await db.refunds.put(completed)
     await db.orders.update(completed.orderId, { refundStatus: 'SUCCESS' })
     for (const tx of pending) await db.loyaltyTransactions.update(tx.id, { type: 'REVERSAL', status: 'REVERSED', points: -Math.abs(tx.points), note: 'Refund reversal before fulfillment' })
     if (availablePoints > 0) await db.loyaltyTransactions.add({ id: createId('LOY-REVERSAL'), customerId: completed.customerId, orderId: completed.orderId, type: 'REVERSAL', status: 'REVERSED', points: -availablePoints, createdAt: at.toISOString(), note: 'Refund reversal' })
-    if (customer) await db.customers.update(customer.id, { pointsPending: Math.max(0, customer.pointsPending - pendingPoints), pointsAvailable: Math.max(0, customer.pointsAvailable - availablePoints) })
+    if (restoredPoints > 0) await db.loyaltyTransactions.add({ id: `LOY-${completed.orderId}-REDEEM-RESTORE`, customerId: completed.customerId, orderId: completed.orderId, type: 'REVERSAL', status: 'AVAILABLE', points: restoredPoints, createdAt: at.toISOString(), note: 'Redeemed points restored after rejected order' })
+    if (customer) await db.customers.update(customer.id, { pointsPending: Math.max(0, customer.pointsPending - pendingPoints), pointsAvailable: Math.max(0, customer.pointsAvailable - availablePoints + restoredPoints) })
     const attention = (await db.attentionItems.toArray()).filter((item) => item.orderId === completed.orderId && !item.resolvedAt)
     for (const item of attention) await db.attentionItems.put(resolveAttentionItem(item, at))
   })

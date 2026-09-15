@@ -9,6 +9,7 @@ import { createRefund } from '../../../domain/refunds/refund.machine'
 import type { Order } from '../../../domain/orders/order.types'
 import type { PaymentAttempt } from '../../../domain/payment/payment.types'
 import type { CustomerNotification } from '../../../domain/customer/customer-experience.types'
+import type { LoyaltyTransaction } from '../../../domain/loyalty/loyalty.types'
 import { getActiveKitchenOrderCount, getCapabilities, getStoreConfig, logOrderEvent, nextOrderSequence, now } from './_shared'
 
 async function notifyCustomer(order: Order, title: string, message: string, kind: CustomerNotification['kind'] = 'ORDER') {
@@ -97,12 +98,22 @@ export async function confirmPaymentAndCreateOrder(payment: PaymentAttempt): Pro
   const customer = await db.customers.get(order.customerId)
   const tier = calculateTier({ rolling120Orders: customer?.stats.rolling120Orders ?? 0, rolling120EligibleSpend: customer?.stats.rolling120EligibleSpend ?? 0 })
   const pendingEarn = applyPendingEarnOnPayment(order.id, order.customerId, order.financialSnapshot.eligibleSpend, tier, now())
+  const redeemedPoints = order.financialSnapshot.pointsRedeemed ?? 0
+  const redemption: LoyaltyTransaction | undefined = redeemedPoints > 0 ? {
+    id: `LOY-${order.id}-REDEEM`, customerId: order.customerId, orderId: order.id,
+    type: 'REDEEM', status: 'REDEEMED', points: -redeemedPoints, createdAt: now().toISOString(),
+    note: `Used on ${order.publicOrderNumber}`,
+  } : undefined
 
   await db.transaction('rw', db.orders, db.orderIntents, db.loyaltyTransactions, db.cartItems, db.customers, async () => {
     await db.orders.add(order)
     await db.orderIntents.update(intent.id, { status: 'CONSUMED' })
     await db.loyaltyTransactions.add(pendingEarn)
-    if (customer) await db.customers.update(customer.id, { pointsPending: customer.pointsPending + pendingEarn.points })
+    if (redemption) await db.loyaltyTransactions.add(redemption)
+    if (customer) await db.customers.update(customer.id, {
+      pointsAvailable: Math.max(0, customer.pointsAvailable - redeemedPoints),
+      pointsPending: customer.pointsPending + pendingEarn.points,
+    })
     await db.cartItems.where('cartId').equals(intent.cartSnapshot.cartId).delete()
   })
   await logOrderEvent(order.id, 'PAYMENT_CONFIRMED', 'SYSTEM', { acceptanceStatus: 'AWAITING_ACCEPTANCE' })
